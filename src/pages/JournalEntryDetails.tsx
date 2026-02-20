@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { journalService } from '../services/journal.service';
+import { storageService } from '../services/storage.service';
 import { useAuth } from '../context/AuthContext';
 import { formatDate } from '../utils/helpers';
+import { JournalEntryForm } from '../components/journal/JournalEntryForm';
 import type { JournalEntry } from '../types/journal';
 
 export const JournalEntryDetails = () => {
@@ -15,6 +17,7 @@ export const JournalEntryDetails = () => {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     const loadEntry = async () => {
@@ -59,6 +62,56 @@ export const JournalEntryDetails = () => {
     }
   };
 
+  const handleUpdateEntry = async (data: {
+    start_date: string;
+    end_date: string;
+    notes: string;
+    is_favorite: boolean;
+    photos?: File[];
+  }) => {
+    if (!entry || !user) return;
+
+    try {
+      // Update the entry
+      await journalService.updateJournalEntry(entry.id, {
+        start_date: data.start_date,
+        end_date: data.end_date,
+        notes: data.notes,
+        is_favorite: data.is_favorite,
+      });
+
+      // Upload new photos if provided
+      if (data.photos && data.photos.length > 0) {
+        for (const photo of data.photos) {
+          try {
+            const { path, url } = await storageService.uploadPhoto(
+              photo,
+              user.id,
+              entry.campground_id
+            );
+
+            await storageService.savePhotoRecord(
+              user.id,
+              entry.campground_id,
+              entry.id,
+              path,
+              url
+            );
+          } catch (err) {
+            console.error('Failed to upload photo:', err);
+          }
+        }
+      }
+
+      // Refresh the entry
+      const updatedEntry = await journalService.getJournalEntryById(entry.id);
+      setEntry(updatedEntry);
+      setIsEditing(false);
+    } catch (err) {
+      throw err;
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -88,17 +141,51 @@ export const JournalEntryDetails = () => {
   const isOwner = user?.id === entry.user_id;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
-      {/* Back Button */}
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-6 text-brand-500 hover:text-brand-600 font-medium inline-flex items-center transition-colors"
-      >
-        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        Back
-      </button>
+    <>
+      {/* Edit Modal */}
+      {isEditing && entry && entry.campground && (
+        <div className="fixed inset-0 bg-ink/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="max-w-2xl w-full">
+            <JournalEntryForm
+              campground={entry.campground}
+              onSubmit={handleUpdateEntry}
+              onCancel={() => setIsEditing(false)}
+              initialData={{
+                start_date: entry.start_date,
+                end_date: entry.end_date,
+                notes: entry.notes || '',
+                is_favorite: entry.is_favorite,
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="text-brand-500 hover:text-brand-600 font-medium inline-flex items-center transition-colors"
+        >
+          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
+
+        {isOwner && (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="px-4 py-2 bg-brand-500 text-white font-medium rounded-button hover:bg-brand-600 transition-colors inline-flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Edit
+          </button>
+        )}
+      </div>
 
       <div className="bg-white rounded-card shadow-card overflow-hidden">
         {/* Photo Gallery */}
@@ -243,6 +330,7 @@ export const JournalEntryDetails = () => {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };

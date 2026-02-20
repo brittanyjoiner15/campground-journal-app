@@ -42,7 +42,7 @@ export const CampgroundDetails = () => {
         console.log('Place details loaded:', placeDetails);
 
         // Set details and stop loading IMMEDIATELY
-        setDetails(placeDetails);
+        setDetails(placeDetails as any);
         setLoading(false);
         loadingRef.current = false;
         console.log('Details displayed!');
@@ -50,21 +50,22 @@ export const CampgroundDetails = () => {
         // Save to database in background (don't wait)
         if (user) {
           console.log('Saving to database in background...');
-          const addressComponents = placeDetails.formatted_address?.split(', ') || [];
+          const details = placeDetails as any;
+          const addressComponents = details.formatted_address?.split(', ') || [];
 
           campgroundService.getOrCreateCampground(id, {
             google_place_id: id,
-            name: placeDetails.name || 'Unknown',
-            address: placeDetails.formatted_address || null,
+            name: details.name || 'Unknown',
+            address: details.formatted_address || null,
             city: addressComponents[addressComponents.length - 3] || null,
             state: addressComponents[addressComponents.length - 2] || null,
             country: addressComponents[addressComponents.length - 1] || null,
-            latitude: placeDetails.geometry?.location?.lat || null,
-            longitude: placeDetails.geometry?.location?.lng || null,
-            phone: placeDetails.formatted_phone_number || null,
-            website: placeDetails.website || null,
-            google_rating: placeDetails.rating || null,
-            google_maps_url: placeDetails.url || null,
+            latitude: details.geometry?.location?.lat || null,
+            longitude: details.geometry?.location?.lng || null,
+            phone: details.formatted_phone_number || null,
+            website: details.website || null,
+            google_rating: details.rating || null,
+            google_maps_url: details.url || null,
           }).then((saved) => {
             console.log('Campground saved to database successfully');
             setCampground(saved);

@@ -79,7 +79,7 @@ export const googleMapsService = {
 
       service.textSearch(request, (results, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          resolve(results as GooglePlaceResult[]);
+          resolve(results as any as GooglePlaceResult[]);
         } else {
           reject(new Error(`Places search failed with status: ${status}`));
         }

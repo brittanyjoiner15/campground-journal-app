@@ -68,6 +68,7 @@ export const JournalEntryDetails = () => {
     notes: string;
     is_favorite: boolean;
     photos?: File[];
+    photosToDelete?: string[];
   }) => {
     if (!entry || !user) return;
 
@@ -79,6 +80,23 @@ export const JournalEntryDetails = () => {
         notes: data.notes,
         is_favorite: data.is_favorite,
       });
+
+      // Delete photos if requested
+      if (data.photosToDelete && data.photosToDelete.length > 0) {
+        for (const photoId of data.photosToDelete) {
+          const photo = entry.photos?.find(p => p.id === photoId);
+          if (photo) {
+            try {
+              // Delete from storage
+              await storageService.deletePhoto(photo.storage_path);
+              // Delete record from database
+              await storageService.deletePhotoRecord(photoId);
+            } catch (err) {
+              console.error('Failed to delete photo:', err);
+            }
+          }
+        }
+      }
 
       // Upload new photos if provided
       if (data.photos && data.photos.length > 0) {
@@ -156,6 +174,7 @@ export const JournalEntryDetails = () => {
                 notes: entry.notes || '',
                 is_favorite: entry.is_favorite,
               }}
+              existingPhotos={entry.photos}
             />
           </div>
         </div>

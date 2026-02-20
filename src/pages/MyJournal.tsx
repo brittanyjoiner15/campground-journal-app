@@ -24,6 +24,7 @@ export const MyJournal = () => {
     notes: string;
     is_favorite: boolean;
     photos?: File[];
+    photosToDelete?: string[];
   }) => {
     if (!editingEntry || !user) return;
 
@@ -35,6 +36,21 @@ export const MyJournal = () => {
         notes: data.notes,
         is_favorite: data.is_favorite,
       });
+
+      // Delete photos if requested
+      if (data.photosToDelete && data.photosToDelete.length > 0) {
+        for (const photoId of data.photosToDelete) {
+          const photo = editingEntry.photos?.find(p => p.id === photoId);
+          if (photo) {
+            try {
+              await storageService.deletePhoto(photo.storage_path);
+              await storageService.deletePhotoRecord(photoId);
+            } catch (err) {
+              console.error('Failed to delete photo:', err);
+            }
+          }
+        }
+      }
 
       // Upload new photos if provided
       if (data.photos && data.photos.length > 0) {
@@ -103,6 +119,7 @@ export const MyJournal = () => {
                 notes: editingEntry.notes || '',
                 is_favorite: editingEntry.is_favorite,
               }}
+              existingPhotos={editingEntry.photos}
             />
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Campground } from '../../types/campground';
+import type { Photo } from '../../types/journal';
 import { ImageUpload } from '../common/ImageUpload';
 
 interface JournalEntryFormProps {
@@ -10,9 +11,11 @@ interface JournalEntryFormProps {
     notes: string;
     is_favorite: boolean;
     photos?: File[];
+    photosToDelete?: string[];
   }) => Promise<void>;
   onCancel: () => void;
   initialData?: { start_date: string; end_date: string; notes: string; is_favorite: boolean };
+  existingPhotos?: Photo[];
 }
 
 export const JournalEntryForm = ({
@@ -20,6 +23,7 @@ export const JournalEntryForm = ({
   onSubmit,
   onCancel,
   initialData,
+  existingPhotos = [],
 }: JournalEntryFormProps) => {
   const today = new Date().toISOString().split('T')[0];
   const [startDate, setStartDate] = useState(
@@ -31,6 +35,7 @@ export const JournalEntryForm = ({
   const [notes, setNotes] = useState(initialData?.notes || '');
   const [isFavorite, setIsFavorite] = useState(initialData?.is_favorite || false);
   const [photos, setPhotos] = useState<File[]>([]);
+  const [photosToDelete, setPhotosToDelete] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -53,11 +58,16 @@ export const JournalEntryForm = ({
         notes,
         is_favorite: isFavorite,
         photos: photos.length > 0 ? photos : undefined,
+        photosToDelete: photosToDelete.length > 0 ? photosToDelete : undefined,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save entry');
       setLoading(false);
     }
+  };
+
+  const handleDeletePhoto = (photoId: string) => {
+    setPhotosToDelete([...photosToDelete, photoId]);
   };
 
   return (
@@ -143,6 +153,38 @@ export const JournalEntryForm = ({
             className="w-full px-4 py-3 border border-sand-300 placeholder-ink-lighter text-ink rounded-button focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors resize-none"
           />
         </div>
+
+        {/* Existing Photos */}
+        {existingPhotos.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-ink mb-2">
+              Existing Photos
+            </label>
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {existingPhotos
+                .filter(photo => !photosToDelete.includes(photo.id))
+                .map(photo => (
+                  <div key={photo.id} className="relative group">
+                    <img
+                      src={photo.public_url}
+                      alt={photo.caption || 'Photo'}
+                      className="w-full h-24 object-cover rounded-button border border-sand-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePhoto(photo.id)}
+                      className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      title="Delete photo"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
 
         <ImageUpload
           onFilesSelected={setPhotos}

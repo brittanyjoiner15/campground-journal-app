@@ -75,4 +75,21 @@ export const userService = {
     if (error) throw error;
     return data as Profile[];
   },
+
+  async getUserIdByUsername(username: string) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', username)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // User not found
+      }
+      throw error;
+    }
+
+    return data.id;
+  },
 };

@@ -3,13 +3,16 @@ import { useJournal } from '../hooks/useJournal';
 import { JournalCard } from '../components/journal/JournalCard';
 import { JournalEntryForm } from '../components/journal/JournalEntryForm';
 import { storageService } from '../services/storage.service';
+import { journalService } from '../services/journal.service';
 import { useAuth } from '../context/AuthContext';
 import type { JournalEntry } from '../types/journal';
+import type { Profile } from '../types/user';
 
 export const MyJournal = () => {
   const { user } = useAuth();
   const { entries, loading, error, deleteEntry, updateEntry, refresh } = useJournal();
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
+  const [activeTab, setActiveTab] = useState<'published' | 'drafts'>('published');
 
   const handleEdit = (entryId: string) => {
     const entry = entries.find(e => e.id === entryId);
@@ -25,6 +28,7 @@ export const MyJournal = () => {
     is_favorite: boolean;
     photos?: File[];
     photosToDelete?: string[];
+    shareWithUser?: Profile | null;
   }) => {
     if (!editingEntry || !user) return;
 
@@ -75,11 +79,48 @@ export const MyJournal = () => {
         }
       }
 
+      // Share with friend if selected
+      if (data.shareWithUser) {
+        try {
+          console.log('Sharing entry with:', data.shareWithUser.username);
+          await journalService.shareJournalEntry(
+            editingEntry.id,
+            data.shareWithUser.id,
+            user.id
+          );
+          console.log('Share successful!');
+        } catch (shareError) {
+          console.error('Error sharing:', shareError);
+          alert(`Failed to share: ${shareError instanceof Error ? shareError.message : 'Unknown error'}`);
+        }
+      }
+
       // Refresh entries to get updated data with photos
       await refresh();
       setEditingEntry(null);
     } catch (err) {
       throw err;
+    }
+  };
+
+  const handleAcceptDraft = async (entryId: string) => {
+    if (!user) return;
+    try {
+      await journalService.acceptDraft(entryId, user.id);
+      await refresh();
+    } catch (err) {
+      console.error('Error accepting draft:', err);
+    }
+  };
+
+  const handleRejectDraft = async (entryId: string) => {
+    if (!user) return;
+    if (!confirm('Permanently delete this draft? This cannot be undone.')) return;
+    try {
+      await journalService.rejectDraft(entryId, user.id);
+      await refresh();
+    } catch (err) {
+      console.error('Error rejecting draft:', err);
     }
   };
 
@@ -133,29 +174,77 @@ export const MyJournal = () => {
         </p>
       </div>
 
-      {entries.length === 0 ? (
-        <div className="bg-white rounded-card shadow-soft p-12 text-center max-w-md mx-auto">
-          <div className="text-6xl mb-4">🏕️</div>
-          <h3 className="text-xl font-display font-semibold text-ink mb-2">
-            Your adventure awaits
-          </h3>
-          <p className="text-base text-ink-light mb-6 leading-relaxed">
-            Start logging your campground visits and build your own travel passport.
-          </p>
-          <a
-            href="/search"
-            className="inline-block px-6 py-3 bg-brand-500 text-white font-medium rounded-button hover:bg-brand-600 transition-colors"
-          >
-            Find a Campground
-          </a>
-        </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {entries.map((entry) => (
-            <JournalCard key={entry.id} entry={entry} onDelete={deleteEntry} onEdit={handleEdit} />
-          ))}
-        </div>
-      )}
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-sand-200 mb-6">
+        <button
+          onClick={() => setActiveTab('published')}
+          className={`px-6 py-3 font-medium relative transition-colors ${
+            activeTab === 'published' ? 'text-brand-500' : 'text-ink-lighter hover:text-ink'
+          }`}
+        >
+          Published ({entries.filter(e => e.status === 'published').length})
+          {activeTab === 'published' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-500" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('drafts')}
+          className={`px-6 py-3 font-medium relative transition-colors ${
+            activeTab === 'drafts' ? 'text-brand-500' : 'text-ink-lighter hover:text-ink'
+          }`}
+        >
+          Drafts ({entries.filter(e => e.status === 'draft').length})
+          {activeTab === 'drafts' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-500" />
+          )}
+        </button>
+      </div>
+
+      {(() => {
+        const publishedEntries = entries.filter(e => e.status === 'published');
+        const draftEntries = entries.filter(e => e.status === 'draft');
+        const displayedEntries = activeTab === 'published' ? publishedEntries : draftEntries;
+
+        if (displayedEntries.length === 0) {
+          return (
+            <div className="bg-white rounded-card shadow-soft p-12 text-center max-w-md mx-auto">
+              <div className="text-6xl mb-4">{activeTab === 'published' ? '🏕️' : '📥'}</div>
+              <h3 className="text-xl font-display font-semibold text-ink mb-2">
+                {activeTab === 'published' ? 'Your adventure awaits' : 'No drafts yet'}
+              </h3>
+              <p className="text-base text-ink-light mb-6 leading-relaxed">
+                {activeTab === 'published'
+                  ? 'Start logging your campground visits and build your own travel passport.'
+                  : 'When friends share journal entries with you, they will appear here.'}
+              </p>
+              {activeTab === 'published' && (
+                <a
+                  href="/search"
+                  className="inline-block px-6 py-3 bg-brand-500 text-white font-medium rounded-button hover:bg-brand-600 transition-colors"
+                >
+                  Find a Campground
+                </a>
+              )}
+            </div>
+          );
+        }
+
+        return (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {displayedEntries.map((entry) => (
+              <JournalCard
+                key={entry.id}
+                entry={entry}
+                onDelete={deleteEntry}
+                onEdit={handleEdit}
+                isDraft={entry.status === 'draft'}
+                onAcceptDraft={handleAcceptDraft}
+                onRejectDraft={handleRejectDraft}
+              />
+            ))}
+          </div>
+        );
+      })()}
       </div>
     </>
   );

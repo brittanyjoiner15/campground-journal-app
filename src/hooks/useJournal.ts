@@ -49,6 +49,19 @@ export const useJournal = () => {
     setEntries((prev) => prev.filter((entry) => entry.id !== entryId));
   };
 
+  const acceptDraft = async (entryId: string) => {
+    if (!user) throw new Error('Must be logged in');
+    const acceptedEntry = await journalService.acceptDraft(entryId, user.id);
+    setEntries((prev) => prev.map((e) => (e.id === entryId ? acceptedEntry : e)));
+    return acceptedEntry;
+  };
+
+  const rejectDraft = async (entryId: string) => {
+    if (!user) throw new Error('Must be logged in');
+    await journalService.rejectDraft(entryId, user.id);
+    setEntries((prev) => prev.filter((e) => e.id !== entryId));
+  };
+
   return {
     entries,
     loading,
@@ -56,6 +69,8 @@ export const useJournal = () => {
     createEntry,
     updateEntry,
     deleteEntry,
+    acceptDraft,
+    rejectDraft,
     refresh: loadEntries,
   };
 };

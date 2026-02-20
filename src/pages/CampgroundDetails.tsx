@@ -372,6 +372,23 @@ export const CampgroundDetails = () => {
                     console.log('All photos uploaded!');
                   }
 
+                  // Share with friend if selected
+                  if (data.shareWithUser) {
+                    try {
+                      console.log('Sharing entry with:', data.shareWithUser.username);
+                      await journalService.shareJournalEntry(
+                        journalEntry.id,
+                        data.shareWithUser.id,
+                        user.id
+                      );
+                      console.log('Entry shared successfully!');
+                    } catch (shareError) {
+                      console.error('Error sharing:', shareError);
+                      alert(`Failed to share: ${shareError instanceof Error ? shareError.message : 'Unknown error'}`);
+                      // Don't fail the whole operation if sharing fails
+                    }
+                  }
+
                   setShowJournalForm(false);
                   navigate('/journal');
                 } catch (error) {

@@ -9,9 +9,12 @@ interface JournalCardProps {
   onEdit?: (id: string) => void;
   showProfile?: boolean;
   showCampground?: boolean;
+  isDraft?: boolean;
+  onAcceptDraft?: (id: string) => void;
+  onRejectDraft?: (id: string) => void;
 }
 
-export const JournalCard = ({ entry, onDelete, onEdit, showProfile = false, showCampground = true }: JournalCardProps) => {
+export const JournalCard = ({ entry, onDelete, onEdit, showProfile = false, showCampground = true, isDraft = false, onAcceptDraft, onRejectDraft }: JournalCardProps) => {
   const entryWithProfile = entry as JournalEntryWithProfile;
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -55,6 +58,45 @@ export const JournalCard = ({ entry, onDelete, onEdit, showProfile = false, show
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Draft Badge Overlay */}
+            {isDraft && (
+              <div className="absolute top-3 left-3 bg-pine-500/90 backdrop-blur-sm px-3 py-1 rounded-badge shadow-stamp">
+                <span className="text-sm font-medium text-white">📥 Draft</span>
+              </div>
+            )}
+
+            {/* Shared With Avatar Overlay */}
+            {entry.shared_with_profile && (
+              <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                <div
+                  className={`transition-opacity ${
+                    entry.shared_accepted === false ? 'opacity-40' : 'opacity-100'
+                  }`}
+                  title={
+                    entry.shared_accepted === false
+                      ? `Shared with @${entry.shared_with_profile.username} (pending)`
+                      : entry.shared_accepted === true
+                      ? `Shared with @${entry.shared_with_profile.username} (accepted)`
+                      : `Shared with @${entry.shared_with_profile.username}`
+                  }
+                >
+                  {entry.shared_with_profile.avatar_url ? (
+                    <img
+                      src={entry.shared_with_profile.avatar_url}
+                      alt={entry.shared_with_profile.username}
+                      className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-brand-500 flex items-center justify-center border-2 border-white shadow-md">
+                      <span className="text-sm font-bold text-white">
+                        {getInitials(entry.shared_with_profile.full_name || entry.shared_with_profile.username)}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -123,6 +165,40 @@ export const JournalCard = ({ entry, onDelete, onEdit, showProfile = false, show
             </span>
           </div>
 
+          {/* Shared From Attribution */}
+          {entry.shared_from_profile && (
+            <div className="text-xs text-ink-lighter mb-3">
+              Shared by{' '}
+              <Link
+                to={`/profile/${entry.shared_from_profile.username}`}
+                className="text-brand-500 hover:text-brand-600 font-medium transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                @{entry.shared_from_profile.username}
+              </Link>
+            </div>
+          )}
+
+          {/* Shared With Attribution */}
+          {entry.shared_with_profile && (
+            <div className="text-xs text-ink-lighter mb-3">
+              Shared with{' '}
+              <Link
+                to={`/profile/${entry.shared_with_profile.username}`}
+                className="text-brand-500 hover:text-brand-600 font-medium transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                @{entry.shared_with_profile.username}
+              </Link>
+              {entry.shared_accepted === false && (
+                <span className="text-amber-600 ml-1">(pending)</span>
+              )}
+              {entry.shared_accepted === true && (
+                <span className="text-pine-600 ml-1">✓ accepted</span>
+              )}
+            </div>
+          )}
+
           {/* Notes Preview */}
           {entry.notes && (
             <p className="text-sm text-ink-light line-clamp-2 leading-relaxed">
@@ -132,23 +208,50 @@ export const JournalCard = ({ entry, onDelete, onEdit, showProfile = false, show
         </div>
       </Link>
 
-      {(onDelete || onEdit) && (
+      {(onDelete || onEdit || (isDraft && onAcceptDraft && onRejectDraft)) && (
         <div className="px-5 py-3 bg-sand-50 border-t border-sand-200 flex justify-end gap-4">
-          {onEdit && (
-            <button
-              onClick={handleEdit}
-              className="text-sm text-pine-600 hover:text-pine-700 font-medium transition-colors"
-            >
-              Edit Entry
-            </button>
-          )}
-          {onDelete && (
-            <button
-              onClick={handleDelete}
-              className="text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors"
-            >
-              Remove Entry
-            </button>
+          {isDraft && onAcceptDraft && onRejectDraft ? (
+            <>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  onAcceptDraft(entry.id);
+                }}
+                className="text-sm text-pine-600 hover:text-pine-700 font-medium transition-colors"
+              >
+                Accept
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (confirm('Reject this draft? This cannot be undone.')) {
+                    onRejectDraft(entry.id);
+                  }
+                }}
+                className="text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors"
+              >
+                Reject
+              </button>
+            </>
+          ) : (
+            <>
+              {onEdit && (
+                <button
+                  onClick={handleEdit}
+                  className="text-sm text-pine-600 hover:text-pine-700 font-medium transition-colors"
+                >
+                  Edit Entry
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={handleDelete}
+                  className="text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors"
+                >
+                  Remove Entry
+                </button>
+              )}
+            </>
           )}
         </div>
       )}

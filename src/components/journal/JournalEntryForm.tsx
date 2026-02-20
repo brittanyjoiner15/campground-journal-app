@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import type { Campground } from '../../types/campground';
 import type { Photo } from '../../types/journal';
+import type { Profile } from '../../types/user';
 import { ImageUpload } from '../common/ImageUpload';
+import { UserSearchSelector } from './UserSearchSelector';
+import { getInitials } from '../../utils/helpers';
+import { useAuth } from '../../context/AuthContext';
 
 interface JournalEntryFormProps {
   campground: Campground;
@@ -12,6 +16,7 @@ interface JournalEntryFormProps {
     is_favorite: boolean;
     photos?: File[];
     photosToDelete?: string[];
+    shareWithUser?: Profile | null;
   }) => Promise<void>;
   onCancel: () => void;
   initialData?: { start_date: string; end_date: string; notes: string; is_favorite: boolean };
@@ -25,6 +30,7 @@ export const JournalEntryForm = ({
   initialData,
   existingPhotos = [],
 }: JournalEntryFormProps) => {
+  const { user } = useAuth();
   const today = new Date().toISOString().split('T')[0];
   const [startDate, setStartDate] = useState(
     initialData?.start_date || today
@@ -36,6 +42,7 @@ export const JournalEntryForm = ({
   const [isFavorite, setIsFavorite] = useState(initialData?.is_favorite || false);
   const [photos, setPhotos] = useState<File[]>([]);
   const [photosToDelete, setPhotosToDelete] = useState<string[]>([]);
+  const [shareWithUser, setShareWithUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -59,6 +66,7 @@ export const JournalEntryForm = ({
         is_favorite: isFavorite,
         photos: photos.length > 0 ? photos : undefined,
         photosToDelete: photosToDelete.length > 0 ? photosToDelete : undefined,
+        shareWithUser,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save entry');
@@ -190,6 +198,55 @@ export const JournalEntryForm = ({
           onFilesSelected={setPhotos}
           maxFiles={5}
         />
+
+        <div>
+          <label className="block text-sm font-medium text-ink mb-2">
+            Share with friend <span className="text-ink-lighter font-normal">(optional)</span>
+          </label>
+
+          {shareWithUser ? (
+            <div className="flex items-center justify-between p-3 bg-brand-50 rounded-button border border-brand-200">
+              <div className="flex items-center gap-3">
+                {shareWithUser.avatar_url ? (
+                  <img
+                    src={shareWithUser.avatar_url}
+                    alt={shareWithUser.username}
+                    className="w-10 h-10 rounded-full object-cover border-2 border-sand-200"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-brand-500 flex items-center justify-center border-2 border-brand-200">
+                    <span className="text-sm font-bold text-white">
+                      {getInitials(shareWithUser.full_name || shareWithUser.username)}
+                    </span>
+                  </div>
+                )}
+                <div>
+                  <div className="text-sm font-medium text-ink">
+                    {shareWithUser.full_name || shareWithUser.username}
+                  </div>
+                  <div className="text-xs text-ink-lighter">@{shareWithUser.username}</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShareWithUser(null)}
+                className="text-ink-lighter hover:text-ink transition-colors"
+                title="Remove"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <UserSearchSelector
+              onSelect={setShareWithUser}
+              excludeUserId={user?.id}
+            />
+          )}
+
+          <p className="text-xs text-ink-lighter mt-2">Your friend will receive this as a draft</p>
+        </div>
 
         <div className="flex items-center gap-3 p-4 bg-brand-50 rounded-button border border-brand-200">
           <input

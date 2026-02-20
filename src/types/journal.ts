@@ -20,10 +20,17 @@ export interface JournalEntry {
   end_date: string;
   notes: string | null;
   is_favorite: boolean;
+  status: 'published' | 'draft';
+  shared_from_user_id: string | null;
+  shared_with_user_id: string | null;
+  original_entry_id: string | null;
+  shared_accepted: boolean | null;
   created_at: string;
   updated_at: string;
   campground?: Campground;
   photos?: Photo[];
+  shared_from_profile?: Profile;
+  shared_with_profile?: Profile;
 }
 
 export interface CreateJournalEntry {
@@ -32,6 +39,8 @@ export interface CreateJournalEntry {
   end_date: string;
   notes?: string;
   is_favorite?: boolean;
+  status?: 'published' | 'draft';
+  shared_from_user_id?: string | null;
 }
 
 export interface UpdateJournalEntry {

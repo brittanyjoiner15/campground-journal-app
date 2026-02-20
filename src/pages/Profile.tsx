@@ -305,6 +305,27 @@ export const Profile = () => {
                 </div>
               </div>
             </div>
+
+            {/* Map Link */}
+            {stats.totalCampgrounds > 0 && (
+              <Link
+                to={`/profile/${profile.username}/map`}
+                className="mt-4 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-button hover:from-brand-600 hover:to-brand-700 transition-all shadow-md hover:shadow-lg"
+              >
+                <span className="text-2xl">🗺️</span>
+                <div className="flex-1">
+                  <div className="font-semibold">
+                    {authProfile?.username === profile.username ? 'View Your Camping Map' : `View ${profile.username}'s Camping Map`}
+                  </div>
+                  <div className="text-xs text-white/90">
+                    {authProfile?.username === profile.username ? 'See all your adventures on a map' : 'See where they\'ve camped'}
+                  </div>
+                </div>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            )}
           </div>
         </div>
       </div>

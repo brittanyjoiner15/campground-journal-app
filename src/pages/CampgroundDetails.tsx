@@ -6,7 +6,11 @@ import { journalService } from '../services/journal.service';
 import { storageService } from '../services/storage.service';
 import { useAuth } from '../context/AuthContext';
 import { JournalEntryForm } from '../components/journal/JournalEntryForm';
+import { CampgroundVisitors } from '../components/campground/CampgroundVisitors';
+import { JournalCard } from '../components/journal/JournalCard';
 import type { Campground } from '../types/campground';
+import type { Profile } from '../types/user';
+import type { JournalEntryWithProfile } from '../types/journal';
 
 export const CampgroundDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,7 +18,10 @@ export const CampgroundDetails = () => {
   const navigate = useNavigate();
   const [details, setDetails] = useState<any>(null);
   const [campground, setCampground] = useState<Campground | null>(null);
+  const [visitors, setVisitors] = useState<Profile[]>([]);
+  const [journalEntries, setJournalEntries] = useState<JournalEntryWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingSocial, setLoadingSocial] = useState(true);
   const [error, setError] = useState('');
   const [showJournalForm, setShowJournalForm] = useState(false);
   const loadingRef = useRef(false);
@@ -60,8 +67,8 @@ export const CampgroundDetails = () => {
             city: addressComponents[addressComponents.length - 3] || null,
             state: addressComponents[addressComponents.length - 2] || null,
             country: addressComponents[addressComponents.length - 1] || null,
-            latitude: details.geometry?.location?.lat || null,
-            longitude: details.geometry?.location?.lng || null,
+            latitude: details.geometry?.location?.lat?.() || null,
+            longitude: details.geometry?.location?.lng?.() || null,
             phone: details.formatted_phone_number || null,
             website: details.website || null,
             google_rating: details.rating || null,
@@ -69,9 +76,21 @@ export const CampgroundDetails = () => {
           }).then((saved) => {
             console.log('Campground saved to database successfully');
             setCampground(saved);
+
+            // Load social data once we have the campground ID
+            loadSocialData(saved.id);
           }).catch((dbError) => {
             console.error('Database save failed (non-critical):', dbError);
           });
+        } else {
+          // If campground already exists, load social data
+          campgroundService.getCampgroundByGooglePlaceId(id)
+            .then((existing) => {
+              if (existing) {
+                loadSocialData(existing.id);
+              }
+            })
+            .catch((err) => console.error('Error fetching existing campground:', err));
         }
       } catch (err) {
         console.error('Error loading campground details:', err);
@@ -88,6 +107,22 @@ export const CampgroundDetails = () => {
       loadingRef.current = false;
     };
   }, [id, user]);
+
+  const loadSocialData = async (campgroundId: string) => {
+    try {
+      setLoadingSocial(true);
+      const [visitorsData, entriesData] = await Promise.all([
+        campgroundService.getCampgroundVisitors(campgroundId),
+        campgroundService.getCampgroundJournalEntries(campgroundId),
+      ]);
+      setVisitors(visitorsData as Profile[]);
+      setJournalEntries(entriesData as JournalEntryWithProfile[]);
+    } catch (err) {
+      console.error('Error loading social data:', err);
+    } finally {
+      setLoadingSocial(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -203,6 +238,13 @@ export const CampgroundDetails = () => {
               </a>
             </div>
           )}
+
+          {/* Visitors */}
+          {!loadingSocial && visitors.length > 0 && (
+            <div className="pt-4 border-t border-sand-200">
+              <CampgroundVisitors visitors={visitors} />
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}
@@ -221,6 +263,20 @@ export const CampgroundDetails = () => {
         )}
       </div>
 
+      {/* Journal Entries from Other Users */}
+      {!loadingSocial && journalEntries.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-2xl md:text-3xl font-display font-semibold text-ink mb-6">
+            Camper Stories ({journalEntries.length})
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {journalEntries.map((entry) => (
+              <JournalCard key={entry.id} entry={entry} showProfile showCampground={false} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Journal Entry Modal */}
       {showJournalForm && details && (
         <div className="fixed inset-0 bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -234,8 +290,8 @@ export const CampgroundDetails = () => {
                 city: null,
                 state: null,
                 country: null,
-                latitude: details.geometry?.location?.lat || null,
-                longitude: details.geometry?.location?.lng || null,
+                latitude: details.geometry?.location?.lat?.() || null,
+                longitude: details.geometry?.location?.lng?.() || null,
                 phone: details.formatted_phone_number || null,
                 website: details.website || null,
                 google_rating: details.rating || null,
@@ -263,8 +319,8 @@ export const CampgroundDetails = () => {
                       city: addressComponents[addressComponents.length - 3] || null,
                       state: addressComponents[addressComponents.length - 2] || null,
                       country: addressComponents[addressComponents.length - 1] || null,
-                      latitude: details.geometry?.location?.lat || null,
-                      longitude: details.geometry?.location?.lng || null,
+                      latitude: details.geometry?.location?.lat?.() || null,
+                      longitude: details.geometry?.location?.lng?.() || null,
                       phone: details.formatted_phone_number || null,
                       website: details.website || null,
                       google_rating: details.rating || null,

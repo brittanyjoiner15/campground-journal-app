@@ -35,6 +35,12 @@ export const Header = () => {
             {user ? (
               <>
                 <Link
+                  to="/feed"
+                  className="text-ink hover:text-brand-500 font-medium transition-colors"
+                >
+                  Feed
+                </Link>
+                <Link
                   to="/journal"
                   className="text-ink hover:text-brand-500 font-medium transition-colors"
                 >

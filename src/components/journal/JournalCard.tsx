@@ -1,14 +1,18 @@
 import { Link } from 'react-router-dom';
-import { formatDate } from '../../utils/helpers';
+import { formatDate, getInitials } from '../../utils/helpers';
 import type { JournalEntry } from '../../types/journal';
+import type { JournalEntryWithProfile } from '../../types/journal';
 
 interface JournalCardProps {
-  entry: JournalEntry;
+  entry: JournalEntry | JournalEntryWithProfile;
   onDelete?: (id: string) => void;
   onEdit?: (id: string) => void;
+  showProfile?: boolean;
+  showCampground?: boolean;
 }
 
-export const JournalCard = ({ entry, onDelete, onEdit }: JournalCardProps) => {
+export const JournalCard = ({ entry, onDelete, onEdit, showProfile = false, showCampground = true }: JournalCardProps) => {
+  const entryWithProfile = entry as JournalEntryWithProfile;
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
     if (window.confirm('Remove this entry from your passport?')) {
@@ -64,15 +68,50 @@ export const JournalCard = ({ entry, onDelete, onEdit }: JournalCardProps) => {
         )}
 
         <div className="p-5">
-          {/* Title */}
-          <h3 className="text-lg font-semibold text-ink mb-1 leading-snug">
-            {entry.campground?.name || 'Unknown Campground'}
-          </h3>
+          {/* Profile Info */}
+          {showProfile && entryWithProfile.profile && (
+            <Link
+              to={`/profile/${entryWithProfile.profile.username}`}
+              className="flex items-center gap-3 mb-4 group/profile"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {entryWithProfile.profile.avatar_url ? (
+                <img
+                  src={entryWithProfile.profile.avatar_url}
+                  alt={entryWithProfile.profile.username}
+                  className="w-10 h-10 rounded-full object-cover border-2 border-sand-200 group-hover/profile:border-brand-500 transition-colors"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-brand-500 flex items-center justify-center border-2 border-sand-200 group-hover/profile:border-brand-600 transition-colors">
+                  <span className="text-sm font-bold text-white">
+                    {getInitials(entryWithProfile.profile.full_name || entryWithProfile.profile.username)}
+                  </span>
+                </div>
+              )}
+              <div>
+                <p className="font-medium text-ink group-hover/profile:text-brand-500 transition-colors">
+                  {entryWithProfile.profile.full_name || entryWithProfile.profile.username}
+                </p>
+                <p className="text-xs text-ink-lighter">
+                  @{entryWithProfile.profile.username}
+                </p>
+              </div>
+            </Link>
+          )}
 
-          {/* Location */}
-          <p className="text-sm text-ink-lighter mb-3">
-            {entry.campground?.address || 'No address'}
-          </p>
+          {/* Title */}
+          {showCampground && (
+            <>
+              <h3 className="text-lg font-semibold text-ink mb-1 leading-snug">
+                {entry.campground?.name || 'Unknown Campground'}
+              </h3>
+
+              {/* Location */}
+              <p className="text-sm text-ink-lighter mb-3">
+                {entry.campground?.address || 'No address'}
+              </p>
+            </>
+          )}
 
           {/* Visit Date Badge */}
           <div className="flex items-center gap-2 mb-3">

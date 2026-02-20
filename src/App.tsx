@@ -10,6 +10,8 @@ import { CampgroundDetails } from './pages/CampgroundDetails';
 import { MyJournal } from './pages/MyJournal';
 import { JournalEntryDetails } from './pages/JournalEntryDetails';
 import { Feed } from './pages/Feed';
+import { Map } from './pages/Map';
+import { UserMap } from './pages/UserMap';
 import { Profile } from './pages/Profile';
 
 function App() {
@@ -48,10 +50,26 @@ function App() {
               }
             />
             <Route
+              path="/map"
+              element={
+                <ProtectedRoute>
+                  <Map />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/profile/:username"
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/:username/map"
+              element={
+                <ProtectedRoute>
+                  <UserMap />
                 </ProtectedRoute>
               }
             />

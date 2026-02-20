@@ -98,4 +98,46 @@ export const campgroundService = {
 
     return data;
   },
+
+  async getCampgroundVisitors(campgroundId: string) {
+    const { data, error } = await supabase
+      .from('journal_entries')
+      .select(`
+        user_id,
+        profile:profiles!journal_entries_user_id_fkey(
+          id, username, full_name, avatar_url
+        )
+      `)
+      .eq('campground_id', campgroundId);
+
+    if (error) throw error;
+
+    // Remove duplicates and extract unique profiles
+    const uniqueProfiles = new Map();
+    data?.forEach((entry: any) => {
+      if (entry.profile && !uniqueProfiles.has(entry.profile.id)) {
+        uniqueProfiles.set(entry.profile.id, entry.profile);
+      }
+    });
+
+    return Array.from(uniqueProfiles.values());
+  },
+
+  async getCampgroundJournalEntries(campgroundId: string) {
+    const { data, error } = await supabase
+      .from('journal_entries')
+      .select(`
+        *,
+        campground:campgrounds(*),
+        photos(*),
+        profile:profiles!journal_entries_user_id_fkey(
+          id, username, full_name, avatar_url
+        )
+      `)
+      .eq('campground_id', campgroundId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
 };

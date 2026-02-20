@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  /* Sunset Orange - Primary Brand */
+  --color-brand-50: #FFF4ED;
+  --color-brand-100: #FFE6D5;
+  --color-brand-200: #FFC9AA;
+  --color-brand-300: #FFA474;
+  --color-brand-400: #FF7A3C;
+  --color-brand-500: #F25C2A;
+  --color-brand-600: #D63F13;
+  --color-brand-700: #B32F0F;
+  --color-brand-800: #8C2710;
+  --color-brand-900: #6B1F0D;
+
+  /* Forest Green - Supporting */
+  --color-pine-50: #F0F9F4;
+  --color-pine-100: #DBF0E3;
+  --color-pine-200: #B9E1CB;
+  --color-pine-300: #8BCBAD;
+  --color-pine-400: #5AAD8A;
+  --color-pine-500: #3A9270;
+  --color-pine-600: #2A7559;
+  --color-pine-700: #235E49;
+  --color-pine-800: #1F4B3C;
+  --color-pine-900: #1A3E32;
+
+  /* Warm Neutrals - Sand */
+  --color-sand-50: #FDFCFB;
+  --color-sand-100: #F9F7F4;
+  --color-sand-200: #F2EDE7;
+  --color-sand-300: #E8DFD6;
+  --color-sand-400: #D9CCC0;
+  --color-sand-500: #C4B5A8;
+  --color-sand-600: #A99484;
+  --color-sand-700: #8A7567;
+  --color-sand-800: #6D5E52;
+  --color-sand-900: #584D44;
+
+  /* Dark Text - Ink */
+  --color-ink: #2D2821;
+  --color-ink-light: #4A4238;
+  --color-ink-lighter: #6B5F52;
+
+  /* Custom Shadows */
+  --shadow-card: 0 2px 8px rgb(45 40 33 / 0.08);
+  --shadow-card-hover: 0 4px 16px rgb(45 40 33 / 0.12);
+  --shadow-stamp: 0 1px 3px rgb(242 92 42 / 0.2);
+  --shadow-soft: 0 2px 12px rgb(45 40 33 / 0.06);
+
+  /* Custom Border Radius */
+  --radius-card: 12px;
+  --radius-button: 10px;
+  --radius-badge: 20px;
+
+  /* Fonts */
+  --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-sand-50 text-ink;
+  }
+}

@@ -260,7 +260,7 @@ export const JournalEntryDetails = () => {
 
             {/* Thumbnail Strip */}
             {entry.photos.length > 1 && (
-              <div className="absolute bottom-4 left-4 flex gap-2 overflow-x-auto max-w-[calc(100%-120px)]">
+              <div className="absolute bottom-4 left-4 flex gap-2 overflow-x-auto max-w-[calc(100%-120px)] scrollbar-hide">
                 {entry.photos.map((photo, idx) => (
                   <button
                     key={photo.id}

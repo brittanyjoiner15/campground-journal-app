@@ -23,7 +23,7 @@ export const JournalCard = ({ entry, onDelete, onEdit }: JournalCardProps) => {
 
   return (
     <div className="bg-white rounded-card shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden group">
-      <Link to={`/campground/${entry.campground?.google_place_id || entry.campground_id}`}>
+      <Link to={`/journal-entry/${entry.id}`}>
         {/* Photo Gallery */}
         {entry.photos && entry.photos.length > 0 && (
           <div className="relative h-48 bg-sand-100 overflow-hidden">

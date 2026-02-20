@@ -8,6 +8,7 @@ import { Signup } from './pages/Signup';
 import { Search } from './pages/Search';
 import { CampgroundDetails } from './pages/CampgroundDetails';
 import { MyJournal } from './pages/MyJournal';
+import { JournalEntryDetails } from './pages/JournalEntryDetails';
 import { Feed } from './pages/Feed';
 import { Profile } from './pages/Profile';
 
@@ -27,6 +28,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <MyJournal />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/journal-entry/:id"
+              element={
+                <ProtectedRoute>
+                  <JournalEntryDetails />
                 </ProtectedRoute>
               }
             />

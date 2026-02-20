@@ -265,7 +265,7 @@ export const JournalEntryDetails = () => {
                   <button
                     key={photo.id}
                     onClick={() => setSelectedPhotoIndex(idx)}
-                    className={`flex-shrink-0 w-16 h-16 rounded-button overflow-hidden border-2 transition-all ${
+                    className={`flex-shrink-0 w-16 h-16 rounded-button overflow-hidden border-2 transition-all bg-transparent ${
                       idx === selectedPhotoIndex
                         ? 'border-white scale-110'
                         : 'border-white/50 opacity-70 hover:opacity-100'

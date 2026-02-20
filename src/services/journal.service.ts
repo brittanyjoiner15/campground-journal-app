@@ -22,7 +22,8 @@ export const journalService = {
       .from('journal_entries')
       .select(`
         *,
-        campground:campgrounds(*)
+        campground:campgrounds(*),
+        photos(*)
       `)
       .eq('id', id)
       .single();

@@ -13,6 +13,8 @@ export const JournalEntryDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
 
   useEffect(() => {
     const loadEntry = async () => {
@@ -32,6 +34,30 @@ export const JournalEntryDetails = () => {
 
     loadEntry();
   }, [id]);
+
+  // Handle swipe gestures
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!entry?.photos || entry.photos.length <= 1) return;
+
+    const minSwipeDistance = 50;
+    const distance = touchStart - touchEnd;
+
+    if (distance > minSwipeDistance) {
+      // Swiped left - next photo
+      setSelectedPhotoIndex((prev) => (prev + 1) % entry.photos!.length);
+    } else if (distance < -minSwipeDistance) {
+      // Swiped right - previous photo
+      setSelectedPhotoIndex((prev) => (prev - 1 + entry.photos!.length) % entry.photos!.length);
+    }
+  };
 
   if (loading) {
     return (
@@ -76,14 +102,19 @@ export const JournalEntryDetails = () => {
 
       <div className="bg-white rounded-card shadow-card overflow-hidden">
         {/* Photo Gallery */}
-        {entry.photos && entry.photos.length > 0 && (
+        {entry.photos && entry.photos.length > 0 ? (
           <div className="relative">
             {/* Main Photo */}
-            <div className="aspect-video bg-sand-100 overflow-hidden">
+            <div
+              className="aspect-video bg-sand-100 overflow-hidden touch-pan-y"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
               <img
                 src={entry.photos[selectedPhotoIndex].public_url}
                 alt={entry.photos[selectedPhotoIndex].caption || 'Journal photo'}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover select-none"
               />
             </div>
 
@@ -143,6 +174,13 @@ export const JournalEntryDetails = () => {
                 ))}
               </div>
             )}
+          </div>
+        ) : (
+          <div className="aspect-video bg-sand-100 flex items-center justify-center">
+            <div className="text-center">
+              <span className="text-6xl mb-2 block">📷</span>
+              <p className="text-ink-lighter">No photos for this entry</p>
+            </div>
           </div>
         )}
 

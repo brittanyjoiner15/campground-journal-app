@@ -41,62 +41,35 @@ export const campgroundService = {
     google_rating?: number | null;
     google_maps_url?: string | null;
   }) {
-    console.log('Inserting campground:', campgroundData.name);
-    console.log('Supabase client:', supabase ? 'initialized' : 'NOT initialized');
-    console.log('About to perform INSERT...');
+    const { data, error } = await supabase
+      .from('campgrounds')
+      .insert([campgroundData])
+      .select()
+      .single();
 
-    try {
-      const insertPromise = supabase
-        .from('campgrounds')
-        .insert([campgroundData])
-        .select()
-        .single();
-
-      console.log('INSERT promise created:', insertPromise);
-
-      const { data, error } = await insertPromise;
-
-      console.log('INSERT completed - data:', data, 'error:', error);
-
-      if (error) {
-        console.error('Insert error:', error);
-        console.error('Error code:', error.code);
-        console.error('Error details:', error.details);
-        console.error('Error hint:', error.hint);
-        throw error;
-      }
-
-      console.log('Campground created:', data.id);
-      return data as Campground;
-    } catch (err) {
-      console.error('Exception in createCampground:', err);
-      throw err;
-    }
+    if (error) throw error;
+    return data as Campground;
   },
 
   async getOrCreateCampground(
     googlePlaceId: string,
     campgroundData: Parameters<typeof this.createCampground>[0]
   ) {
-    console.log('getOrCreateCampground for:', googlePlaceId);
+    // Check if campground already exists first
+    const existing = await this.getCampgroundByGooglePlaceId(googlePlaceId);
+    if (existing) {
+      return existing;
+    }
 
-    // Try to insert directly - if it already exists, we'll get a duplicate key error
+    // If not, create it
     try {
-      const created = await this.createCampground(campgroundData);
-      console.log('Created new campground:', created.id);
-      return created;
+      return await this.createCampground(campgroundData);
     } catch (error: any) {
-      // If duplicate key error (campground already exists), fetch it
-      if (error.code === '23505' || error.message?.includes('duplicate')) {
-        console.log('Campground already exists, fetching...');
+      // Handle race condition: another request created it between our check and insert
+      if (error.code === '23505') {
         const existing = await this.getCampgroundByGooglePlaceId(googlePlaceId);
-        if (existing) {
-          console.log('Found existing campground:', existing.id);
-          return existing;
-        }
+        if (existing) return existing;
       }
-      // Re-throw other errors
-      console.error('Error in getOrCreateCampground:', error);
       throw error;
     }
   },

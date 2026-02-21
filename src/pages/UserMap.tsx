@@ -37,10 +37,27 @@ export const UserMap = () => {
         }
         setProfile(userProfile);
 
-        // Fetch user's journal entries
-        const data = await journalService.getUserJournalEntries(userProfile.id);
+        // Fetch user's journal entries (only published for other users, include drafts for own profile)
+        const data = await journalService.getUserJournalEntries(userProfile.id, isOwnProfile);
         console.log('Fetched entries for map:', data);
-        console.log('Entries with coords:', data.filter(e => e.campground?.latitude && e.campground?.longitude));
+        console.log('Total entries:', data.length);
+
+        // Detailed diagnostics
+        data.forEach((entry, idx) => {
+          console.log(`Entry ${idx + 1}:`, {
+            id: entry.id,
+            campground_id: entry.campground_id,
+            campground_name: entry.campground?.name,
+            has_campground: !!entry.campground,
+            latitude: entry.campground?.latitude,
+            longitude: entry.campground?.longitude,
+            lat_type: typeof entry.campground?.latitude,
+            lng_type: typeof entry.campground?.longitude,
+          });
+        });
+
+        const entriesWithCoords = data.filter(e => e.campground?.latitude && e.campground?.longitude);
+        console.log('Entries with coords:', entriesWithCoords.length, 'out of', data.length);
         setEntries(data);
       } catch (err) {
         console.error('Error loading user map:', err);

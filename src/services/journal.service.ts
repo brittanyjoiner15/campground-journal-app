@@ -2,8 +2,8 @@ import { supabase } from './supabase';
 import type { JournalEntry, CreateJournalEntry, UpdateJournalEntry, JournalEntryWithProfile } from '../types/journal';
 
 export const journalService = {
-  async getUserJournalEntries(userId: string) {
-    const { data, error } = await supabase
+  async getUserJournalEntries(userId: string, includeDrafts: boolean = true) {
+    let query = supabase
       .from('journal_entries')
       .select(`
         *,
@@ -16,8 +16,14 @@ export const journalService = {
           id, username, full_name, avatar_url
         )
       `)
-      .eq('user_id', userId)
-      .order('start_date', { ascending: false });
+      .eq('user_id', userId);
+
+    // Only include published entries if drafts shouldn't be included
+    if (!includeDrafts) {
+      query = query.eq('status', 'published');
+    }
+
+    const { data, error } = await query.order('start_date', { ascending: false });
 
     if (error) throw error;
     return data as JournalEntry[];
@@ -29,7 +35,13 @@ export const journalService = {
       .select(`
         *,
         campground:campgrounds(*),
-        photos(*)
+        photos(*),
+        shared_from_profile:profiles!journal_entries_shared_from_user_id_fkey(
+          id, username, full_name, avatar_url
+        ),
+        shared_with_profile:profiles!journal_entries_shared_with_user_id_fkey(
+          id, username, full_name, avatar_url
+        )
       `)
       .eq('id', id)
       .single();

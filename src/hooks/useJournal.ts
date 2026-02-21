@@ -14,7 +14,7 @@ export const useJournal = () => {
 
     try {
       setLoading(true);
-      const data = await journalService.getUserJournalEntries(user.id);
+      const data = await journalService.getUserJournalEntries(user.id, true); // Include drafts for own journal
       setEntries(data);
       setError(null);
     } catch (err) {

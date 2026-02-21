@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { formatDate, getInitials } from '../../utils/helpers';
 import type { JournalEntry } from '../../types/journal';
 import type { JournalEntryWithProfile } from '../../types/journal';
@@ -15,6 +15,7 @@ interface JournalCardProps {
 }
 
 export const JournalCard = ({ entry, onDelete, onEdit, showProfile = false, showCampground = true, isDraft = false, onAcceptDraft, onRejectDraft }: JournalCardProps) => {
+  const navigate = useNavigate();
   const entryWithProfile = entry as JournalEntryWithProfile;
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -38,6 +39,7 @@ export const JournalCard = ({ entry, onDelete, onEdit, showProfile = false, show
               <img
                 src={entry.photos[0].public_url}
                 alt={entry.photos[0].caption || 'Campground photo'}
+                loading="lazy"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
             ) : (
@@ -47,6 +49,7 @@ export const JournalCard = ({ entry, onDelete, onEdit, showProfile = false, show
                     <img
                       src={photo.public_url}
                       alt={photo.caption || `Photo ${idx + 1}`}
+                      loading="lazy"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     {idx === 3 && entry.photos!.length > 4 && (
@@ -87,6 +90,7 @@ export const JournalCard = ({ entry, onDelete, onEdit, showProfile = false, show
                     <img
                       src={entry.shared_with_profile.avatar_url}
                       alt={entry.shared_with_profile.username}
+                      loading="lazy"
                       className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md"
                     />
                   ) : (
@@ -112,15 +116,19 @@ export const JournalCard = ({ entry, onDelete, onEdit, showProfile = false, show
         <div className="p-5">
           {/* Profile Info */}
           {showProfile && entryWithProfile.profile && (
-            <Link
-              to={`/profile/${entryWithProfile.profile.username}`}
-              className="flex items-center gap-3 mb-4 group/profile"
-              onClick={(e) => e.stopPropagation()}
+            <div
+              className="flex items-center gap-3 mb-4 group/profile cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate(`/profile/${entryWithProfile.profile.username}`);
+              }}
             >
               {entryWithProfile.profile.avatar_url ? (
                 <img
                   src={entryWithProfile.profile.avatar_url}
                   alt={entryWithProfile.profile.username}
+                  loading="lazy"
                   className="w-10 h-10 rounded-full object-cover border-2 border-sand-200 group-hover/profile:border-brand-500 transition-colors"
                 />
               ) : (
@@ -138,7 +146,7 @@ export const JournalCard = ({ entry, onDelete, onEdit, showProfile = false, show
                   @{entryWithProfile.profile.username}
                 </p>
               </div>
-            </Link>
+            </div>
           )}
 
           {/* Title */}
@@ -169,13 +177,16 @@ export const JournalCard = ({ entry, onDelete, onEdit, showProfile = false, show
           {entry.shared_from_profile && (
             <div className="text-xs text-ink-lighter mb-3">
               Shared by{' '}
-              <Link
-                to={`/profile/${entry.shared_from_profile.username}`}
+              <button
                 className="text-brand-500 hover:text-brand-600 font-medium transition-colors"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigate(`/profile/${entry.shared_from_profile.username}`);
+                }}
               >
                 @{entry.shared_from_profile.username}
-              </Link>
+              </button>
             </div>
           )}
 
@@ -183,13 +194,16 @@ export const JournalCard = ({ entry, onDelete, onEdit, showProfile = false, show
           {entry.shared_with_profile && (
             <div className="text-xs text-ink-lighter mb-3">
               Shared with{' '}
-              <Link
-                to={`/profile/${entry.shared_with_profile.username}`}
+              <button
                 className="text-brand-500 hover:text-brand-600 font-medium transition-colors"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigate(`/profile/${entry.shared_with_profile.username}`);
+                }}
               >
                 @{entry.shared_with_profile.username}
-              </Link>
+              </button>
               {entry.shared_accepted === false && (
                 <span className="text-amber-600 ml-1">(pending)</span>
               )}

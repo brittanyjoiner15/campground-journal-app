@@ -43,19 +43,21 @@ export const userService = {
   },
 
   async getUserStats(userId: string) {
-    // Get total journal entries
+    // Get total published journal entries only
     const { count: journalCount, error: journalError } = await supabase
       .from('journal_entries')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .eq('status', 'published');
 
     if (journalError) throw journalError;
 
-    // Get total photos
+    // Get total photos (only from published entries)
     const { count: photoCount, error: photoError } = await supabase
       .from('photos')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
+      .select('journal_entry_id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .not('journal_entry_id', 'is', null);
 
     if (photoError) throw photoError;
 

@@ -30,9 +30,28 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<User | null>(null);
+  // Check localStorage IMMEDIATELY for cached session (instant, no network)
+  const getCachedSession = () => {
+    try {
+      const key = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.includes('-auth-token'));
+      if (key) {
+        const data = localStorage.getItem(key);
+        if (data) {
+          const parsed = JSON.parse(data);
+          return parsed?.currentSession?.user || null;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse cached session:', e);
+    }
+    return null;
+  };
+
+  const cachedUser = getCachedSession();
+  const [user, setUser] = useState<User | null>(cachedUser); // Start with cached user!
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedUser); // Only loading if no cached user
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Log auth state changes
   useEffect(() => {
@@ -48,19 +67,30 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     console.log('🔐 AuthContext: Initializing...');
 
-    // Get initial session
+    // If we have a cached user, load profile immediately (non-blocking)
+    if (cachedUser) {
+      console.log('🔐 AuthContext: Using cached user, fetching profile in background');
+      fetchProfile(cachedUser.id);
+    }
+
+    // Validate session in background (don't block UI)
     authService.getCurrentSession().then((session) => {
-      console.log('🔐 AuthContext: Initial session check', {
+      console.log('🔐 AuthContext: Background session validation', {
         hasSession: !!session,
         userId: session?.user?.id,
         email: session?.user?.email,
       });
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
+
+      // Only update if session changed
+      if (session?.user?.id !== user?.id) {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          fetchProfile(session.user.id);
+        }
       }
+
+      setHasInitialized(true);
+      setLoading(false);
     });
 
     // Listen for auth changes
@@ -72,6 +102,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           userId: session?.user?.id,
           email: session?.user?.email,
         });
+
+        // Skip the initial SIGNED_IN event if we already initialized
+        if (event === 'SIGNED_IN' && hasInitialized) {
+          console.log('🔐 AuthContext: Skipping duplicate SIGNED_IN event');
+          return;
+        }
+
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user.id);
@@ -79,6 +116,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           setProfile(null);
         }
         setLoading(false);
+        setHasInitialized(true);
       }
     );
 
@@ -91,33 +129,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const fetchProfile = async (userId: string) => {
     console.log('🔐 AuthContext: Fetching profile for user:', userId);
 
+    // ALWAYS set loading to false immediately - don't block UI
+    setLoading(false);
+
     // Try to load cached profile immediately
     const cachedProfile = localStorage.getItem(`profile_${userId}`);
     if (cachedProfile) {
       try {
         const parsed = JSON.parse(cachedProfile);
-        console.log('✅ AuthContext: Loaded profile from cache', parsed);
+        console.log('✅ AuthContext: Loaded profile from cache (instant)', parsed);
         setProfile(parsed);
-        setLoading(false);
         // Continue fetching in background to get latest
       } catch (e) {
         console.error('Failed to parse cached profile');
       }
-    } else {
-      // No cache, but set a fallback immediately so UI isn't blocked
-      const fallbackProfile = {
-        id: userId,
-        username: 'britt', // Use known username as fallback
-        full_name: null,
-        avatar_url: null,
-        bio: null,
-        website: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      setProfile(fallbackProfile);
-      setLoading(false);
-      console.log('⚠️  Using immediate fallback profile while fetching');
     }
 
     // Fetch in background (don't block UI)

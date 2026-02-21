@@ -27,6 +27,7 @@ export const CampgroundVisitors = ({ visitors }: CampgroundVisitorsProps) => {
             <img
               src={visitor.avatar_url}
               alt={visitor.username}
+              loading="lazy"
               className="w-9 h-9 rounded-full object-cover border-2 border-sand-200 group-hover:border-brand-500 transition-all group-hover:scale-110"
             />
           ) : (

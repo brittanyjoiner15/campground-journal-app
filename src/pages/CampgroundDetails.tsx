@@ -45,7 +45,12 @@ export const CampgroundDetails = () => {
       console.log('Loading campground details for:', id);
 
       try {
-        const placeDetails = await googleMapsService.getCampgroundDetails(id);
+        // Start both Google Maps fetch AND database check in parallel
+        const [placeDetails, existingCampground] = await Promise.all([
+          googleMapsService.getCampgroundDetails(id),
+          campgroundService.getCampgroundByGooglePlaceId(id).catch(() => null),
+        ]);
+
         console.log('Place details loaded:', placeDetails);
 
         // Set details and stop loading IMMEDIATELY
@@ -54,44 +59,57 @@ export const CampgroundDetails = () => {
         loadingRef.current = false;
         console.log('Details displayed!');
 
-        // Save to database in background (don't wait)
-        if (user) {
-          console.log('Saving to database in background...');
-          const details = placeDetails as any;
-          const addressComponents = details.formatted_address?.split(', ') || [];
+        // Save/update campground and load social data in background
+        const details = placeDetails as any;
+        const addressComponents = details.formatted_address?.split(', ') || [];
 
-          campgroundService.getOrCreateCampground(id, {
-            google_place_id: id,
-            name: details.name || 'Unknown',
-            address: details.formatted_address || null,
-            city: addressComponents[addressComponents.length - 3] || null,
-            state: addressComponents[addressComponents.length - 2] || null,
-            country: addressComponents[addressComponents.length - 1] || null,
-            latitude: details.geometry?.location?.lat?.() || null,
-            longitude: details.geometry?.location?.lng?.() || null,
-            phone: details.formatted_phone_number || null,
-            website: details.website || null,
-            google_rating: details.rating || null,
-            google_maps_url: details.url || null,
-          }).then((saved) => {
-            console.log('Campground saved to database successfully');
-            setCampground(saved);
+        const lat = details.geometry?.location?.lat?.() || null;
+        const lng = details.geometry?.location?.lng?.() || null;
 
-            // Load social data once we have the campground ID
-            loadSocialData(saved.id);
-          }).catch((dbError) => {
-            console.error('Database save failed (non-critical):', dbError);
-          });
-        } else {
-          // If campground already exists, load social data
-          campgroundService.getCampgroundByGooglePlaceId(id)
-            .then((existing) => {
-              if (existing) {
-                loadSocialData(existing.id);
-              }
-            })
-            .catch((err) => console.error('Error fetching existing campground:', err));
+        console.log('Extracted coordinates:', {
+          name: details.name,
+          lat,
+          lng,
+          hasGeometry: !!details.geometry,
+          hasLocation: !!details.geometry?.location,
+        });
+
+        if (!lat || !lng) {
+          console.warn('⚠️ WARNING: No coordinates found for campground:', details.name);
         }
+
+        // Save/update campground in database
+        campgroundService.getOrCreateCampground(id, {
+          google_place_id: id,
+          name: details.name || 'Unknown',
+          address: details.formatted_address || null,
+          city: addressComponents[addressComponents.length - 3] || null,
+          state: addressComponents[addressComponents.length - 2] || null,
+          country: addressComponents[addressComponents.length - 1] || null,
+          latitude: lat,
+          longitude: lng,
+          phone: details.formatted_phone_number || null,
+          website: details.website || null,
+          google_rating: details.rating || null,
+          google_maps_url: details.url || null,
+        }).then((saved) => {
+          console.log('Campground saved to database successfully');
+          console.log('Saved coordinates:', {
+            latitude: saved.latitude,
+            longitude: saved.longitude,
+          });
+          setCampground(saved);
+
+          // Load social data once we have the campground ID
+          loadSocialData(saved.id);
+        }).catch((dbError) => {
+          console.error('Database save failed (non-critical):', dbError);
+          // If save failed but we have existing campground, still load social data
+          if (existingCampground) {
+            setCampground(existingCampground);
+            loadSocialData(existingCampground.id);
+          }
+        });
       } catch (err) {
         console.error('Error loading campground details:', err);
         setError(err instanceof Error ? err.message : 'Failed to load details');
@@ -106,7 +124,7 @@ export const CampgroundDetails = () => {
     return () => {
       loadingRef.current = false;
     };
-  }, [id, user]);
+  }, [id, user?.id]); // Only depend on user ID, not the whole user object
 
   const loadSocialData = async (campgroundId: string) => {
     try {
@@ -312,6 +330,20 @@ export const CampgroundDetails = () => {
                   if (!campgroundId) {
                     console.log('Saving campground to database first...');
                     const addressComponents = details.formatted_address?.split(', ') || [];
+
+                    const lat = details.geometry?.location?.lat?.() || null;
+                    const lng = details.geometry?.location?.lng?.() || null;
+
+                    console.log('Journal form - Extracted coordinates:', {
+                      name: details.name,
+                      lat,
+                      lng,
+                    });
+
+                    if (!lat || !lng) {
+                      console.warn('⚠️ WARNING: Creating journal entry without coordinates for:', details.name);
+                    }
+
                     const saved = await campgroundService.getOrCreateCampground(id, {
                       google_place_id: id,
                       name: details.name || 'Unknown',
@@ -319,14 +351,18 @@ export const CampgroundDetails = () => {
                       city: addressComponents[addressComponents.length - 3] || null,
                       state: addressComponents[addressComponents.length - 2] || null,
                       country: addressComponents[addressComponents.length - 1] || null,
-                      latitude: details.geometry?.location?.lat?.() || null,
-                      longitude: details.geometry?.location?.lng?.() || null,
+                      latitude: lat,
+                      longitude: lng,
                       phone: details.formatted_phone_number || null,
                       website: details.website || null,
                       google_rating: details.rating || null,
                       google_maps_url: details.url || null,
                     });
                     console.log('Campground saved:', saved);
+                    console.log('Saved coordinates:', {
+                      latitude: saved.latitude,
+                      longitude: saved.longitude,
+                    });
                     campgroundId = saved.id;
                   }
 

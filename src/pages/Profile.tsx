@@ -42,18 +42,22 @@ export const Profile = () => {
 
         // Try to load cached journal entries
         const cachedEntries = localStorage.getItem(`journal_${user.id}`);
+        let hasCachedData = false;
         if (cachedEntries) {
           try {
             setJournalEntries(JSON.parse(cachedEntries));
             setLoadingJournal(false); // Have cached data
+            hasCachedData = true;
           } catch (e) {
             console.error('Failed to parse cached journal');
           }
         }
 
-        // Fetch journal entries in background
-        setLoadingJournal(true);
-        journalService.getUserJournalEntries(user.id)
+        // Fetch journal entries in background (only show loading if no cache)
+        if (!hasCachedData) {
+          setLoadingJournal(true);
+        }
+        journalService.getUserJournalEntries(user.id, true) // Include drafts for own profile
           .then(entries => {
             setJournalEntries(entries);
             localStorage.setItem(`journal_${user.id}`, JSON.stringify(entries));
@@ -92,8 +96,10 @@ export const Profile = () => {
       }
 
       // Viewing someone else's profile - need to fetch
+      console.log(`📱 Viewing profile: ${username} (other user's profile)`);
       try {
         setLoading(true);
+        setLoadingJournal(true);
         setError('');
 
         const userProfile = await userService.getProfileByUsername(username);
@@ -101,12 +107,16 @@ export const Profile = () => {
         if (!userProfile) {
           setError('User not found');
           setLoading(false);
+          setLoadingJournal(false);
           return;
         }
 
+        console.log(`✅ Profile loaded: ${userProfile.username}`);
         setProfile(userProfile);
 
-        const entries = await journalService.getUserJournalEntries(userProfile.id);
+        console.log(`📖 Fetching journal entries for user: ${userProfile.id}`);
+        const entries = await journalService.getUserJournalEntries(userProfile.id, false); // Only published for other users
+        console.log(`✅ Journal entries loaded: ${entries.length} entries`);
         setJournalEntries(entries);
 
         const userStats = await userService.getUserStats(userProfile.id);
@@ -116,15 +126,16 @@ export const Profile = () => {
         setFollowStats(userFollowStats);
 
       } catch (err) {
-        console.error('Error loading profile:', err);
+        console.error('❌ Error loading profile:', err);
         setError('Failed to load profile');
       } finally {
         setLoading(false);
+        setLoadingJournal(false);
       }
     };
 
     loadProfile();
-  }, [username, authProfile, user]);
+  }, [username]); // Only depend on username to prevent infinite loop from object recreation
 
   const handleFollowChange = async () => {
     if (!profile) return;

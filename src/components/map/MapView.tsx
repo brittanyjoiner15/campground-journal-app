@@ -24,7 +24,17 @@ export const MapView = ({ entries, center, zoom = 4 }: MapViewProps) => {
 
     const initMap = async () => {
       try {
-        const validEntries = entries.filter(e => e.campground?.latitude && e.campground?.longitude);
+        // Filter entries with valid coordinates (handle both number and string types from DB)
+        const validEntries = entries.filter(e => {
+          const lat = e.campground?.latitude;
+          const lng = e.campground?.longitude;
+          // Check if coordinates exist and are valid numbers (handle DECIMAL as string from Supabase)
+          return lat != null && lng != null &&
+                 !isNaN(Number(lat)) && !isNaN(Number(lng)) &&
+                 Number(lat) !== 0 && Number(lng) !== 0;
+        });
+
+        console.log(`MapView: ${validEntries.length} entries with valid coordinates out of ${entries.length} total`);
 
         // Calculate center and initial zoom
         const hasValidEntries = validEntries.length > 0;
@@ -145,9 +155,14 @@ export const MapView = ({ entries, center, zoom = 4 }: MapViewProps) => {
   }, [entries, center, zoom, navigate]);
 
   const calculateCenter = (entries: JournalEntry[]) => {
-    const validEntries = entries.filter(
-      (e) => e.campground?.latitude && e.campground?.longitude
-    );
+    // Filter entries with valid coordinates (same logic as main filter)
+    const validEntries = entries.filter(e => {
+      const lat = e.campground?.latitude;
+      const lng = e.campground?.longitude;
+      return lat != null && lng != null &&
+             !isNaN(Number(lat)) && !isNaN(Number(lng)) &&
+             Number(lat) !== 0 && Number(lng) !== 0;
+    });
 
     if (validEntries.length === 0) {
       return { lat: 39.8283, lng: -98.5795 }; // Center of USA

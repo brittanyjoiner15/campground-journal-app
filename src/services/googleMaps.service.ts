@@ -114,11 +114,60 @@ export const googleMapsService = {
         ],
       };
 
-      service.getDetails(request, (result, status) => {
+      service.getDetails(request, async (result, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && result) {
+          // Check if we have valid coordinates
+          const hasCoords = result.geometry?.location?.lat && result.geometry?.location?.lng;
+
+          if (!hasCoords && result.formatted_address) {
+            console.warn('No geometry in place details, attempting geocoding fallback for:', result.name);
+            try {
+              const coords = await this.geocodeAddress(result.formatted_address);
+              if (coords) {
+                console.log('Successfully geocoded coordinates:', coords);
+                // Add geometry to result
+                result.geometry = {
+                  location: {
+                    lat: () => coords.lat,
+                    lng: () => coords.lng,
+                  },
+                } as any;
+              }
+            } catch (geocodeError) {
+              console.error('Geocoding fallback failed:', geocodeError);
+            }
+          }
+
           resolve(result);
         } else {
           reject(new Error(`Place details failed with status: ${status}`));
+        }
+      });
+    });
+  },
+
+  async geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+    await loadGoogleMapsScript();
+
+    if (!window.google?.maps) {
+      throw new Error('Google Maps library not available');
+    }
+
+    return new Promise((resolve, reject) => {
+      const geocoder = new google.maps.Geocoder();
+
+      geocoder.geocode({ address }, (results, status) => {
+        if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
+          const location = results[0].geometry.location;
+          const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
+          const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
+          resolve({
+            lat: Number(lat),
+            lng: Number(lng),
+          });
+        } else {
+          console.error(`Geocoding failed with status: ${status}`);
+          resolve(null);
         }
       });
     });

@@ -53,11 +53,53 @@ export const campgroundService = {
 
   async getOrCreateCampground(
     googlePlaceId: string,
-    campgroundData: Parameters<typeof this.createCampground>[0]
+    campgroundData: {
+      google_place_id: string;
+      name: string;
+      address?: string | null;
+      city?: string | null;
+      state?: string | null;
+      country?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
+      phone?: string | null;
+      website?: string | null;
+      google_rating?: number | null;
+      google_maps_url?: string | null;
+    }
   ) {
     // Check if campground already exists first
     const existing = await this.getCampgroundByGooglePlaceId(googlePlaceId);
     if (existing) {
+      // Check if existing record is missing coordinates but we have them now
+      const hasNewCoords = campgroundData.latitude != null && campgroundData.longitude != null;
+      const needsCoordinateUpdate =
+        (!existing.latitude || !existing.longitude) && hasNewCoords;
+
+      if (needsCoordinateUpdate) {
+        console.log('Updating existing campground with coordinates:', {
+          name: existing.name,
+          oldLat: existing.latitude,
+          oldLng: existing.longitude,
+          newLat: campgroundData.latitude,
+          newLng: campgroundData.longitude,
+        });
+
+        // Update the existing record with the new coordinates
+        const { data, error } = await supabase
+          .from('campgrounds')
+          .update({
+            latitude: campgroundData.latitude,
+            longitude: campgroundData.longitude,
+          })
+          .eq('id', existing.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data as Campground;
+      }
+
       return existing;
     }
 
@@ -123,7 +165,7 @@ export const campgroundService = {
     return Array.from(uniqueProfiles.values());
   },
 
-  async getCampgroundJournalEntries(campgroundId: string) {
+  async getCampgroundJournalEntries(campgroundId: string, limit: number = 6) {
     const { data, error } = await supabase
       .from('journal_entries')
       .select(`
@@ -135,7 +177,9 @@ export const campgroundService = {
         )
       `)
       .eq('campground_id', campgroundId)
-      .order('created_at', { ascending: false });
+      .eq('status', 'published')
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
     if (error) throw error;
     return data;

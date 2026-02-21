@@ -4,10 +4,41 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>campground-app</title>
+    <title>Campground App</title>
+    <style>
+      /* Inline loading splash - shows instantly before React loads */
+      #app-loading {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #F25C2A 0%, #2D4A3E 100%);
+        z-index: 9999;
+      }
+      #app-loading .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      /* Hide once React takes over */
+      #root:not(:empty) ~ #app-loading {
+        display: none;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <!-- Loading splash - shows immediately -->
+    <div id="app-loading">
+      <div class="spinner"></div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

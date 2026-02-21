@@ -5,6 +5,7 @@ import { journalService } from '../services/journal.service';
 import { JournalCard } from '../components/journal/JournalCard';
 import { UserSearchBar } from '../components/social/UserSearchBar';
 import { getInitials } from '../utils/helpers';
+import { CampingLoader } from '../components/common/CampingLoader';
 import type { JournalEntryWithProfile } from '../types/journal';
 
 export const Feed = () => {
@@ -35,8 +36,8 @@ export const Feed = () => {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-3 border-brand-500 border-t-transparent"></div>
+        <div className="flex items-center justify-center py-12">
+          <CampingLoader message="Loading adventures" size="medium" />
         </div>
       </div>
     );

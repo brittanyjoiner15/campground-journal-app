@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { googleMapsService } from '../../services/googleMaps.service';
 import type { JournalEntry } from '../../types/journal';
 import { formatDate } from '../../utils/helpers';
+import { CampingLoader } from '../common/CampingLoader';
 
 interface MapViewProps {
   entries: JournalEntry[];
@@ -220,7 +221,7 @@ export const MapView = ({ entries, center, zoom = 4 }: MapViewProps) => {
       <div ref={mapRef} className="w-full h-full rounded-card overflow-hidden" />
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-sand-50">
-          <div className="animate-spin rounded-full h-12 w-12 border-3 border-brand-500 border-t-transparent"></div>
+          <CampingLoader message="Loading map" size="large" />
         </div>
       )}
       {error && (

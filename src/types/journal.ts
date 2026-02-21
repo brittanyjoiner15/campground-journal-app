@@ -19,6 +19,7 @@ export interface JournalEntry {
   start_date: string;
   end_date: string;
   notes: string | null;
+  video_url: string | null;
   is_favorite: boolean;
   status: 'published' | 'draft';
   shared_from_user_id: string | null;
@@ -38,6 +39,7 @@ export interface CreateJournalEntry {
   start_date: string;
   end_date: string;
   notes?: string;
+  video_url?: string;
   is_favorite?: boolean;
   status?: 'published' | 'draft';
   shared_from_user_id?: string | null;
@@ -47,6 +49,7 @@ export interface UpdateJournalEntry {
   start_date?: string;
   end_date?: string;
   notes?: string;
+  video_url?: string;
   is_favorite?: boolean;
 }
 

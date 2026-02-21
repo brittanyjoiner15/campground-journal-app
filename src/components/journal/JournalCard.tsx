@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { formatDate, getInitials } from '../../utils/helpers';
+import { formatDate, getInitials, getYouTubeEmbedUrl } from '../../utils/helpers';
 import type { JournalEntry } from '../../types/journal';
 import type { JournalEntryWithProfile } from '../../types/journal';
 
@@ -101,6 +101,54 @@ export const JournalCard = ({ entry, onDelete, onEdit, showProfile = false, show
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Favorite Badge Overlay */}
+            {entry.is_favorite && (
+              <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-badge shadow-stamp">
+                <span className="text-sm font-medium text-brand-500">⭐ Favorite</span>
+              </div>
+            )}
+
+            {/* Video Badge */}
+            {entry.video_url && (
+              <div className="absolute bottom-3 left-3 bg-ink/80 backdrop-blur-sm px-3 py-1 rounded-badge shadow-stamp">
+                <span className="text-sm font-medium text-white">🎥 Video</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* No photos - show video or placeholder */}
+        {(!entry.photos || entry.photos.length === 0) && (
+          <div className="relative h-48 bg-sand-100">
+            {entry.video_url && (() => {
+              const embedUrl = getYouTubeEmbedUrl(entry.video_url);
+              if (embedUrl) {
+                return (
+                  <iframe
+                    src={embedUrl}
+                    title="Journal entry video"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full"
+                  />
+                );
+              }
+              return null;
+            })() || (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <span className="text-5xl mb-2 block">🏕️</span>
+                </div>
+              </div>
+            )}
+
+            {/* Draft Badge Overlay */}
+            {isDraft && (
+              <div className="absolute top-3 left-3 bg-pine-500/90 backdrop-blur-sm px-3 py-1 rounded-badge shadow-stamp">
+                <span className="text-sm font-medium text-white">📥 Draft</span>
               </div>
             )}
 

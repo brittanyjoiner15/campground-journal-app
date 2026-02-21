@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { JournalEntryForm } from '../components/journal/JournalEntryForm';
 import { CampgroundVisitors } from '../components/campground/CampgroundVisitors';
 import { JournalCard } from '../components/journal/JournalCard';
+import { CampingLoader } from '../components/common/CampingLoader';
 import type { Campground } from '../types/campground';
 import type { Profile } from '../types/user';
 import type { JournalEntryWithProfile } from '../types/journal';
@@ -42,44 +43,32 @@ export const CampgroundDetails = () => {
       loadingRef.current = true;
       setLoading(true);
       setError('');
-      console.log('Loading campground details for:', id);
+      console.log('🚀 Loading campground details (parallel):', id);
 
       try {
-        // Start both Google Maps fetch AND database check in parallel
+        // 🔥 OPTIMIZATION: Fetch EVERYTHING in parallel!
         const [placeDetails, existingCampground] = await Promise.all([
           googleMapsService.getCampgroundDetails(id),
           campgroundService.getCampgroundByGooglePlaceId(id).catch(() => null),
         ]);
 
-        console.log('Place details loaded:', placeDetails);
+        console.log('✅ Place details loaded:', placeDetails);
 
         // Set details and stop loading IMMEDIATELY
         setDetails(placeDetails as any);
         setLoading(false);
         loadingRef.current = false;
-        console.log('Details displayed!');
 
-        // Save/update campground and load social data in background
+        // Prepare campground data
         const details = placeDetails as any;
         const addressComponents = details.formatted_address?.split(', ') || [];
-
         const lat = details.geometry?.location?.lat?.() || null;
         const lng = details.geometry?.location?.lng?.() || null;
 
-        console.log('Extracted coordinates:', {
-          name: details.name,
-          lat,
-          lng,
-          hasGeometry: !!details.geometry,
-          hasLocation: !!details.geometry?.location,
-        });
+        console.log('📍 Extracted coordinates:', { name: details.name, lat, lng });
 
-        if (!lat || !lng) {
-          console.warn('⚠️ WARNING: No coordinates found for campground:', details.name);
-        }
-
-        // Save/update campground in database
-        campgroundService.getOrCreateCampground(id, {
+        // 🔥 OPTIMIZATION: Save campground AND load social data in parallel!
+        const savePromise = campgroundService.getOrCreateCampground(id, {
           google_place_id: id,
           name: details.name || 'Unknown',
           address: details.formatted_address || null,
@@ -92,26 +81,32 @@ export const CampgroundDetails = () => {
           website: details.website || null,
           google_rating: details.rating || null,
           google_maps_url: details.url || null,
-        }).then((saved) => {
-          console.log('Campground saved to database successfully');
-          console.log('Saved coordinates:', {
-            latitude: saved.latitude,
-            longitude: saved.longitude,
-          });
+        }).then(saved => {
+          console.log('💾 Campground saved:', saved.id);
           setCampground(saved);
-
-          // Load social data once we have the campground ID
-          loadSocialData(saved.id);
+          return saved.id;
         }).catch((dbError) => {
-          console.error('Database save failed (non-critical):', dbError);
-          // If save failed but we have existing campground, still load social data
-          if (existingCampground) {
-            setCampground(existingCampground);
-            loadSocialData(existingCampground.id);
-          }
+          console.error('❌ Save failed:', dbError);
+          return existingCampground?.id;
         });
+
+        // If we already have the campground ID, start loading social data immediately!
+        const campgroundId = existingCampground?.id;
+        if (campgroundId) {
+          console.log('⚡ Starting social data load (early)');
+          loadSocialData(campgroundId);
+        } else {
+          // Wait for save to complete, then load social data
+          savePromise.then(id => {
+            if (id) {
+              console.log('⚡ Starting social data load (after save)');
+              loadSocialData(id);
+            }
+          });
+        }
+
       } catch (err) {
-        console.error('Error loading campground details:', err);
+        console.error('❌ Error loading campground:', err);
         setError(err instanceof Error ? err.message : 'Failed to load details');
         setLoading(false);
         loadingRef.current = false;
@@ -145,9 +140,8 @@ export const CampgroundDetails = () => {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-3 border-brand-500 border-t-transparent mb-4"></div>
-          <p className="text-ink-light">Loading campground details...</p>
+        <div className="flex justify-center items-center py-12">
+          <CampingLoader message="Finding the perfect spot" size="large" />
         </div>
       </div>
     );
@@ -372,6 +366,7 @@ export const CampgroundDetails = () => {
                     start_date: data.start_date,
                     end_date: data.end_date,
                     notes: data.notes,
+                    video_url: data.video_url || null,
                     is_favorite: data.is_favorite,
                   });
                   console.log('Journal entry created successfully!', journalEntry);

@@ -3,9 +3,10 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { journalService } from '../services/journal.service';
 import { storageService } from '../services/storage.service';
 import { useAuth } from '../context/AuthContext';
-import { formatDate } from '../utils/helpers';
+import { formatDate, getYouTubeEmbedUrl } from '../utils/helpers';
 import { JournalEntryForm } from '../components/journal/JournalEntryForm';
 import type { JournalEntry } from '../types/journal';
+import { CampingLoader } from '../components/common/CampingLoader';
 
 export const JournalEntryDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -66,6 +67,7 @@ export const JournalEntryDetails = () => {
     start_date: string;
     end_date: string;
     notes: string;
+    video_url: string;
     is_favorite: boolean;
     photos?: File[];
     photosToDelete?: string[];
@@ -78,6 +80,7 @@ export const JournalEntryDetails = () => {
         start_date: data.start_date,
         end_date: data.end_date,
         notes: data.notes,
+        video_url: data.video_url || null,
         is_favorite: data.is_favorite,
       });
 
@@ -134,7 +137,7 @@ export const JournalEntryDetails = () => {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-3 border-brand-500 border-t-transparent"></div>
+          <CampingLoader message="Loading adventure" size="medium" />
         </div>
       </div>
     );
@@ -172,6 +175,7 @@ export const JournalEntryDetails = () => {
                 start_date: entry.start_date,
                 end_date: entry.end_date,
                 notes: entry.notes || '',
+                video_url: entry.video_url || '',
                 is_favorite: entry.is_favorite,
               }}
               existingPhotos={entry.photos}
@@ -335,6 +339,28 @@ export const JournalEntryDetails = () => {
               </div>
             </div>
           )}
+
+          {/* Video Embed */}
+          {entry.video_url && (() => {
+            const embedUrl = getYouTubeEmbedUrl(entry.video_url);
+            if (embedUrl) {
+              return (
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium text-ink-lighter mb-2">Video</h3>
+                  <div className="aspect-video bg-ink rounded-button overflow-hidden">
+                    <iframe
+                      src={embedUrl}
+                      title="Journal entry video"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                    />
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           {/* Actions */}
           {isOwner && (

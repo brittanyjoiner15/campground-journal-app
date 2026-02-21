@@ -12,6 +12,7 @@ import type { Profile as ProfileType } from '../types/user';
 import type { JournalEntry } from '../types/journal';
 import type { FollowStats } from '../types/follow';
 import { getInitials } from '../utils/helpers';
+import { CampingLoader } from '../components/common/CampingLoader';
 
 export const Profile = () => {
   const { username } = useParams<{ username: string }>();
@@ -53,22 +54,12 @@ export const Profile = () => {
           }
         }
 
-        // Fetch journal entries in background (only show loading if no cache)
+        // 🔥 OPTIMIZATION: Fetch all data in parallel!
         if (!hasCachedData) {
           setLoadingJournal(true);
         }
-        journalService.getUserJournalEntries(user.id, true) // Include drafts for own profile
-          .then(entries => {
-            setJournalEntries(entries);
-            localStorage.setItem(`journal_${user.id}`, JSON.stringify(entries));
-            setLoadingJournal(false);
-          })
-          .catch(err => {
-            console.error('Background journal fetch failed:', err);
-            setLoadingJournal(false);
-          });
 
-        // Calculate stats from cached entries
+        // Load cached stats immediately
         const cachedStats = localStorage.getItem(`stats_${user.id}`);
         if (cachedStats) {
           try {
@@ -78,18 +69,22 @@ export const Profile = () => {
           }
         }
 
-        // Fetch stats in background
-        userService.getUserStats(user.id)
-          .then(userStats => {
-            setStats(userStats);
-            localStorage.setItem(`stats_${user.id}`, JSON.stringify(userStats));
-          })
-          .catch(err => console.error('Background stats fetch failed:', err));
-
-        // Fetch follow stats
-        followService.getFollowStats(user.id)
-          .then(setFollowStats)
-          .catch(err => console.error('Background follow stats fetch failed:', err));
+        // Fetch everything in parallel (don't wait for each!)
+        Promise.all([
+          journalService.getUserJournalEntries(user.id, true),
+          userService.getUserStats(user.id),
+          followService.getFollowStats(user.id),
+        ]).then(([entries, userStats, userFollowStats]) => {
+          setJournalEntries(entries);
+          setStats(userStats);
+          setFollowStats(userFollowStats);
+          localStorage.setItem(`journal_${user.id}`, JSON.stringify(entries));
+          localStorage.setItem(`stats_${user.id}`, JSON.stringify(userStats));
+          setLoadingJournal(false);
+        }).catch(err => {
+          console.error('Background fetch failed:', err);
+          setLoadingJournal(false);
+        });
 
         setLoading(false);
         return;
@@ -113,22 +108,24 @@ export const Profile = () => {
 
         console.log(`✅ Profile loaded: ${userProfile.username}`);
         setProfile(userProfile);
+        setLoading(false); // Show profile immediately!
 
-        console.log(`📖 Fetching journal entries for user: ${userProfile.id}`);
-        const entries = await journalService.getUserJournalEntries(userProfile.id, false); // Only published for other users
-        console.log(`✅ Journal entries loaded: ${entries.length} entries`);
+        // 🔥 OPTIMIZATION: Fetch all user data in parallel!
+        const [entries, userStats, userFollowStats] = await Promise.all([
+          journalService.getUserJournalEntries(userProfile.id, false), // Only published
+          userService.getUserStats(userProfile.id),
+          followService.getFollowStats(userProfile.id),
+        ]);
+
+        console.log(`✅ All data loaded: ${entries.length} entries`);
         setJournalEntries(entries);
-
-        const userStats = await userService.getUserStats(userProfile.id);
         setStats(userStats);
-
-        const userFollowStats = await followService.getFollowStats(userProfile.id);
         setFollowStats(userFollowStats);
+        setLoadingJournal(false);
 
       } catch (err) {
         console.error('❌ Error loading profile:', err);
         setError('Failed to load profile');
-      } finally {
         setLoading(false);
         setLoadingJournal(false);
       }
@@ -359,7 +356,7 @@ export const Profile = () => {
 
         {loadingJournal ? (
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-3 border-brand-500 border-t-transparent"></div>
+            <CampingLoader message="Loading adventures" size="medium" />
           </div>
         ) : journalEntries.length === 0 ? (
           <div className="bg-white border border-sand-200 rounded-card shadow-soft p-12 text-center">

@@ -6,6 +6,7 @@ import { userService } from '../services/user.service';
 import { MapView } from '../components/map/MapView';
 import type { JournalEntry } from '../types/journal';
 import type { Profile } from '../types/user';
+import { CampingLoader } from '../components/common/CampingLoader';
 
 export const UserMap = () => {
   const { username } = useParams<{ username: string }>();
@@ -74,7 +75,7 @@ export const UserMap = () => {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-center h-[calc(100vh-200px)]">
-          <div className="animate-spin rounded-full h-12 w-12 border-3 border-brand-500 border-t-transparent"></div>
+          <CampingLoader message="Exploring the map" size="large" />
         </div>
       </div>
     );

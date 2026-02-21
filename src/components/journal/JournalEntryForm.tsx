@@ -13,13 +13,14 @@ interface JournalEntryFormProps {
     start_date: string;
     end_date: string;
     notes: string;
+    video_url: string;
     is_favorite: boolean;
     photos?: File[];
     photosToDelete?: string[];
     shareWithUser?: Profile | null;
   }) => Promise<void>;
   onCancel: () => void;
-  initialData?: { start_date: string; end_date: string; notes: string; is_favorite: boolean };
+  initialData?: { start_date: string; end_date: string; notes: string; video_url?: string; is_favorite: boolean };
   existingPhotos?: Photo[];
 }
 
@@ -39,6 +40,7 @@ export const JournalEntryForm = ({
     initialData?.end_date || today
   );
   const [notes, setNotes] = useState(initialData?.notes || '');
+  const [videoUrl, setVideoUrl] = useState(initialData?.video_url || '');
   const [isFavorite, setIsFavorite] = useState(initialData?.is_favorite || false);
   const [photos, setPhotos] = useState<File[]>([]);
   const [photosToDelete, setPhotosToDelete] = useState<string[]>([]);
@@ -63,6 +65,7 @@ export const JournalEntryForm = ({
         start_date: startDate,
         end_date: endDate,
         notes,
+        video_url: videoUrl,
         is_favorite: isFavorite,
         photos: photos.length > 0 ? photos : undefined,
         photosToDelete: photosToDelete.length > 0 ? photosToDelete : undefined,
@@ -160,6 +163,26 @@ export const JournalEntryForm = ({
             placeholder="How was your stay? Any tips for future visitors?"
             className="w-full px-4 py-3 border border-sand-300 placeholder-ink-lighter text-ink rounded-button focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors resize-none"
           />
+        </div>
+
+        <div>
+          <label htmlFor="video_url" className="block text-sm font-medium text-ink mb-2">
+            Video URL <span className="text-ink-lighter font-normal">(optional)</span>
+          </label>
+          <input
+            type="url"
+            id="video_url"
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            placeholder="https://youtube.com/watch?v=..."
+            className="w-full px-4 py-3 border border-sand-300 placeholder-ink-lighter text-ink rounded-button focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors"
+          />
+          <p className="text-xs text-ink-lighter mt-1 flex items-center gap-1">
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            Paste a YouTube link from your camping trip
+          </p>
         </div>
 
         {/* Existing Photos */}

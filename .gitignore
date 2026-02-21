@@ -20,6 +20,9 @@ dist-ssr
 # Database scripts output
 *.output
 
+# Network logs (contain API keys!)
+*.har
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

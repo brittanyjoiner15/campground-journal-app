@@ -7,6 +7,7 @@ import { journalService } from '../services/journal.service';
 import { useAuth } from '../context/AuthContext';
 import type { JournalEntry } from '../types/journal';
 import type { Profile } from '../types/user';
+import { CampingLoader } from '../components/common/CampingLoader';
 
 export const MyJournal = () => {
   const { user } = useAuth();
@@ -25,6 +26,7 @@ export const MyJournal = () => {
     start_date: string;
     end_date: string;
     notes: string;
+    video_url: string;
     is_favorite: boolean;
     photos?: File[];
     photosToDelete?: string[];
@@ -38,6 +40,7 @@ export const MyJournal = () => {
         start_date: data.start_date,
         end_date: data.end_date,
         notes: data.notes,
+        video_url: data.video_url || null,
         is_favorite: data.is_favorite,
       });
 
@@ -127,8 +130,8 @@ export const MyJournal = () => {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        <div className="flex items-center justify-center py-12">
+          <CampingLoader message="Loading your journal" size="medium" />
         </div>
       </div>
     );
@@ -158,6 +161,7 @@ export const MyJournal = () => {
                 start_date: editingEntry.start_date,
                 end_date: editingEntry.end_date,
                 notes: editingEntry.notes || '',
+                video_url: editingEntry.video_url || '',
                 is_favorite: editingEntry.is_favorite,
               }}
               existingPhotos={editingEntry.photos}

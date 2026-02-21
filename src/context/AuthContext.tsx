@@ -147,18 +147,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Fetch in background (don't block UI)
     try {
-      // Add timeout to profile fetch
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Profile fetch timeout after 10 seconds')), 10000);
-      });
-
-      const fetchPromise = supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
-
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
       if (error) throw error;
       console.log('🔐 AuthContext: Profile fetched successfully from database', data);

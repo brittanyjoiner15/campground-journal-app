@@ -4,4 +4,9 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    // This ensures all routes fallback to index.html in dev mode
+    // so React Router can handle the routing
+    historyApiFallback: true,
+  },
 })

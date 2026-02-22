@@ -16,14 +16,20 @@ export const Feed = () => {
 
   useEffect(() => {
     const loadFeed = async () => {
-      if (!user) return;
+      if (!user) {
+        console.log('📰 Feed: No user yet, skipping load');
+        setLoading(false);
+        return;
+      }
 
+      console.log('📰 Feed: Loading feed for user:', user.id);
       try {
         setLoading(true);
         const feedEntries = await journalService.getFeedEntries(user.id);
+        console.log('✅ Feed: Loaded', feedEntries.length, 'entries');
         setEntries(feedEntries);
       } catch (err) {
-        console.error('Error loading feed:', err);
+        console.error('❌ Feed: Error loading feed:', err);
         setError('Failed to load feed');
       } finally {
         setLoading(false);
@@ -31,7 +37,7 @@ export const Feed = () => {
     };
 
     loadFeed();
-  }, [user]);
+  }, [user?.id]); // Use user.id instead of user object
 
   if (loading) {
     return (

@@ -119,10 +119,19 @@ export const journalService = {
     const startTime = performance.now();
 
     console.log('⏱️ Feed: Fetching following list...');
-    const { data: followingIds, error: followError } = await supabase
+    console.log('⏱️ Feed: Supabase client exists?', !!supabase);
+    console.log('⏱️ Feed: About to call supabase.from...');
+
+    const query = supabase
       .from('follows')
       .select('following_id')
       .eq('follower_id', userId);
+
+    console.log('⏱️ Feed: Query built, about to await...');
+    const result = await query;
+    console.log('⏱️ Feed: Query completed!', result);
+
+    const { data: followingIds, error: followError } = result;
 
     if (followError) {
       console.error('❌ Feed: Error fetching following list:', followError);

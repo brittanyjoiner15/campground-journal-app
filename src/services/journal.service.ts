@@ -115,19 +115,30 @@ export const journalService = {
   },
 
   async getFeedEntries(userId: string) {
+    console.log('⏱️ Feed: Starting feed fetch for user:', userId);
+    const startTime = performance.now();
+
+    console.log('⏱️ Feed: Fetching following list...');
     const { data: followingIds, error: followError } = await supabase
       .from('follows')
       .select('following_id')
       .eq('follower_id', userId);
 
-    if (followError) throw followError;
+    if (followError) {
+      console.error('❌ Feed: Error fetching following list:', followError);
+      throw followError;
+    }
+
+    console.log(`✅ Feed: Following list fetched (${followingIds?.length || 0} users)`);
 
     if (!followingIds || followingIds.length === 0) {
+      console.log('📭 Feed: Not following anyone, returning empty feed');
       return [] as JournalEntryWithProfile[];
     }
 
     const userIds = followingIds.map(f => f.following_id);
 
+    console.log('⏱️ Feed: Fetching journal entries for', userIds.length, 'users...');
     const { data, error } = await supabase
       .from('journal_entries')
       .select(`
@@ -139,10 +150,17 @@ export const journalService = {
         )
       `)
       .in('user_id', userIds)
+      .eq('status', 'published')
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Feed: Error fetching journal entries:', error);
+      throw error;
+    }
+
+    const endTime = performance.now();
+    console.log(`✅ Feed: Fetched ${data.length} entries in ${(endTime - startTime).toFixed(0)}ms`);
     return data as JournalEntryWithProfile[];
   },
 

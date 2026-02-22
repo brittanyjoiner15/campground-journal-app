@@ -128,8 +128,20 @@ export const journalService = {
       .eq('follower_id', userId);
 
     console.log('⏱️ Feed: Query built, about to await...');
-    const result = await query;
-    console.log('⏱️ Feed: Query completed!', result);
+
+    // Add timeout to prevent infinite hang
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Query timeout after 5 seconds')), 5000)
+    );
+
+    let result;
+    try {
+      result = await Promise.race([query, timeoutPromise]);
+      console.log('⏱️ Feed: Query completed!', result);
+    } catch (timeoutError) {
+      console.error('❌ Feed: Query timed out!', timeoutError);
+      throw timeoutError;
+    }
 
     const { data: followingIds, error: followError } = result;
 

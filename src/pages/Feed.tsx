@@ -25,6 +25,7 @@ export const Feed = () => {
       console.log('📰 Feed: Loading feed for user:', user.id);
       try {
         setLoading(true);
+        console.log('📰 Feed: About to call journalService.getFeedEntries...');
         const feedEntries = await journalService.getFeedEntries(user.id);
         console.log('✅ Feed: Loaded', feedEntries.length, 'entries');
         setEntries(feedEntries);

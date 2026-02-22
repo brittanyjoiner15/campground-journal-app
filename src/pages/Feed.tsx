@@ -22,6 +22,19 @@ export const Feed = () => {
     }
 
     console.log('📰 Feed: Loading feed for user:', user.id);
+
+    // Check auth session before making request
+    import('../services/supabase').then(({ supabase }) => {
+      supabase.auth.getSession().then(({ data, error }) => {
+        console.log('📰 Feed: Current auth session:', {
+          hasSession: !!data.session,
+          userId: data.session?.user?.id,
+          expiresAt: data.session?.expires_at,
+          error
+        });
+      });
+    });
+
     setLoading(true);
 
     // Use Promise pattern like Profile page

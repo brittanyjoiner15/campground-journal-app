@@ -115,12 +115,6 @@ export const journalService = {
   },
 
   async getFeedEntries(userId: string) {
-    console.log('⏱️ Feed: Starting feed fetch for user:', userId);
-    const startTime = performance.now();
-
-    // TEMPORARY: Skip follows check to test if that's the issue
-    console.log('⚠️ TEMP: Skipping follows check, loading all recent entries...');
-
     const { data, error } = await supabase
       .from('journal_entries')
       .select(`
@@ -132,83 +126,11 @@ export const journalService = {
         )
       `)
       .eq('status', 'published')
+      .neq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(20);
 
-    if (error) {
-      console.error('❌ Feed: Error fetching journal entries:', error);
-      throw error;
-    }
-
-    const endTime = performance.now();
-    console.log(`✅ Feed: Fetched ${data.length} entries in ${(endTime - startTime).toFixed(0)}ms`);
-    return data as JournalEntryWithProfile[];
-
-    /* ORIGINAL CODE - COMMENTED OUT FOR TESTING
-    console.log('⏱️ Feed: Fetching following list...');
-    console.log('⏱️ Feed: Supabase client exists?', !!supabase);
-    console.log('⏱️ Feed: About to call supabase.from...');
-
-    const query = supabase
-      .from('follows')
-      .select('following_id')
-      .eq('follower_id', userId);
-
-    console.log('⏱️ Feed: Query built, about to await...');
-
-    // Add timeout to prevent infinite hang
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Query timeout after 5 seconds')), 5000)
-    );
-
-    let result;
-    try {
-      result = await Promise.race([query, timeoutPromise]);
-      console.log('⏱️ Feed: Query completed!', result);
-    } catch (timeoutError) {
-      console.error('❌ Feed: Query timed out!', timeoutError);
-      throw timeoutError;
-    }
-
-    const { data: followingIds, error: followError } = result;
-
-    if (followError) {
-      console.error('❌ Feed: Error fetching following list:', followError);
-      throw followError;
-    }
-
-    console.log(`✅ Feed: Following list fetched (${followingIds?.length || 0} users)`);
-
-    if (!followingIds || followingIds.length === 0) {
-      console.log('📭 Feed: Not following anyone, returning empty feed');
-      return [] as JournalEntryWithProfile[];
-    }
-
-    const userIds = followingIds.map(f => f.following_id);
-
-    console.log('⏱️ Feed: Fetching journal entries for', userIds.length, 'users...');
-    const { data, error } = await supabase
-      .from('journal_entries')
-      .select(`
-        *,
-        campground:campgrounds(*),
-        photos(*),
-        profile:profiles!journal_entries_user_id_fkey(
-          id, username, full_name, avatar_url
-        )
-      `)
-      .in('user_id', userIds)
-      .eq('status', 'published')
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    if (error) {
-      console.error('❌ Feed: Error fetching journal entries:', error);
-      throw error;
-    }
-
-    const endTime = performance.now();
-    console.log(`✅ Feed: Fetched ${data.length} entries in ${(endTime - startTime).toFixed(0)}ms`);
+    if (error) throw error;
     return data as JournalEntryWithProfile[];
   },
 

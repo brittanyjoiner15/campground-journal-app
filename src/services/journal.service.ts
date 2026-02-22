@@ -118,6 +118,33 @@ export const journalService = {
     console.log('⏱️ Feed: Starting feed fetch for user:', userId);
     const startTime = performance.now();
 
+    // TEMPORARY: Skip follows check to test if that's the issue
+    console.log('⚠️ TEMP: Skipping follows check, loading all recent entries...');
+
+    const { data, error } = await supabase
+      .from('journal_entries')
+      .select(`
+        *,
+        campground:campgrounds(*),
+        photos(*),
+        profile:profiles!journal_entries_user_id_fkey(
+          id, username, full_name, avatar_url
+        )
+      `)
+      .eq('status', 'published')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.error('❌ Feed: Error fetching journal entries:', error);
+      throw error;
+    }
+
+    const endTime = performance.now();
+    console.log(`✅ Feed: Fetched ${data.length} entries in ${(endTime - startTime).toFixed(0)}ms`);
+    return data as JournalEntryWithProfile[];
+
+    /* ORIGINAL CODE - COMMENTED OUT FOR TESTING
     console.log('⏱️ Feed: Fetching following list...');
     console.log('⏱️ Feed: Supabase client exists?', !!supabase);
     console.log('⏱️ Feed: About to call supabase.from...');

@@ -15,29 +15,27 @@ export const Feed = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const loadFeed = async () => {
-      if (!user) {
-        console.log('📰 Feed: No user yet, skipping load');
-        setLoading(false);
-        return;
-      }
+    if (!user) {
+      console.log('📰 Feed: No user yet, skipping load');
+      setLoading(false);
+      return;
+    }
 
-      console.log('📰 Feed: Loading feed for user:', user.id);
-      try {
-        setLoading(true);
-        console.log('📰 Feed: About to call journalService.getFeedEntries...');
-        const feedEntries = await journalService.getFeedEntries(user.id);
+    console.log('📰 Feed: Loading feed for user:', user.id);
+    setLoading(true);
+
+    // Use Promise pattern like Profile page
+    journalService.getFeedEntries(user.id)
+      .then((feedEntries) => {
         console.log('✅ Feed: Loaded', feedEntries.length, 'entries');
         setEntries(feedEntries);
-      } catch (err) {
+        setLoading(false);
+      })
+      .catch((err) => {
         console.error('❌ Feed: Error loading feed:', err);
         setError('Failed to load feed');
-      } finally {
         setLoading(false);
-      }
-    };
-
-    loadFeed();
+      });
   }, [user?.id]); // Use user.id instead of user object
 
   if (loading) {

@@ -37,13 +37,16 @@ export const Header = () => {
 
       // Test 2: Auth session with timeout
       console.log('🧪 TEST 2: Checking auth session (8s timeout)...');
-      const sessionResult = await withTimeout(supabase.auth.getSession(), 8000);
+      const sessionResult = await withTimeout(
+        Promise.resolve(supabase.auth.getSession()),
+        8000
+      );
       console.log('✅ TEST 2: Session check complete:', sessionResult);
 
       // Test 3: Count query with head: true (fastest possible)
       console.log('🧪 TEST 3: Trying follows COUNT query (8s timeout)...');
       const countResult = await withTimeout(
-        supabase.from('follows').select('count', { count: 'exact', head: true }),
+        Promise.resolve(supabase.from('follows').select('count', { count: 'exact', head: true })),
         8000
       );
       console.log('✅ TEST 3: Count query complete:', countResult);
@@ -51,7 +54,7 @@ export const Header = () => {
       // Test 4: Simple select
       console.log('🧪 TEST 4: Trying simple follows select (8s timeout)...');
       const selectResult = await withTimeout(
-        supabase.from('follows').select('following_id').limit(1),
+        Promise.resolve(supabase.from('follows').select('following_id').limit(1)),
         8000
       );
       console.log('✅ TEST 4: Select query complete:', selectResult);

@@ -52,7 +52,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(!cachedUser); // Only loading if no cached user
   const [hasInitialized, setHasInitialized] = useState(false);
-  const [isFetchingProfile, setIsFetchingProfile] = useState(false);
 
   // Log auth state changes
   useEffect(() => {
@@ -128,14 +127,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, []);
 
   const fetchProfile = async (userId: string) => {
-    // Prevent duplicate fetches
-    if (isFetchingProfile) {
-      console.log('🔐 AuthContext: Skipping duplicate profile fetch');
-      return;
-    }
-
     console.log('🔐 AuthContext: Fetching profile for user:', userId);
-    setIsFetchingProfile(true);
 
     // ALWAYS set loading to false immediately - don't block UI
     setLoading(false);
@@ -170,8 +162,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (error) {
       console.error('❌ AuthContext: Error fetching profile (using fallback):', error);
       // We already set a fallback profile above, so just log the error
-    } finally {
-      setIsFetchingProfile(false);
     }
   };
 

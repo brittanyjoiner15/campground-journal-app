@@ -30,6 +30,9 @@ export const journalService = {
   },
 
   async getJournalEntryById(id: string) {
+    console.log('⏱️ Starting journal entry fetch:', id);
+    const startTime = performance.now();
+
     const { data, error } = await supabase
       .from('journal_entries')
       .select(`
@@ -45,6 +48,9 @@ export const journalService = {
       `)
       .eq('id', id)
       .single();
+
+    const endTime = performance.now();
+    console.log(`✅ Journal entry fetched in ${(endTime - startTime).toFixed(0)}ms`);
 
     if (error) throw error;
     return data as JournalEntry;
